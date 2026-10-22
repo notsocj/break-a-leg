@@ -1,19 +1,20 @@
 {
-  "schemaVersion": 1,
-  "toolVersion": "0.1.0",
-  "runId": "c1f71d36-28b7-4f22-a3e3-c01fb1b00d0e",
-  "startedAt": "2026-10-22T18:13:27.219Z",
-  "finishedAt": "2026-10-22T18:13:27.426Z",
+  "schemaVersion": 2,
+  "toolVersion": "0.1.1",
+  "runId": "4ae6a6d2-25aa-4a0e-92a3-2680cf869bba",
+  "startedAt": "2026-10-22T18:24:36.604Z",
+  "finishedAt": "2026-10-22T18:24:36.811Z",
   "mode": "local",
-  "targetOrigin": "http://127.0.0.1:65311",
+  "targetOrigin": "http://127.0.0.1:49849",
   "commit": null,
-  "planSha256": "1cf3f4154a84ede9a59c473fd3b5df702f6b08c79e194fa2f8b9559a59cf0788",
+  "planSha256": "f7d0c3e31f5f3212f82257cc4e30e77be5bf032c12c8714678800eb3b35132c9",
   "requestsMade": 5,
   "checks": [
     {
       "id": "owner-note",
       "category": "authorization-read",
       "status": "issue-found",
+      "complete": true,
       "reason": "A caller outside the declared access policy received the synthetic private marker",
       "observations": [
         {

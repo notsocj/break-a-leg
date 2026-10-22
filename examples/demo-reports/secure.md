@@ -1,12 +1,12 @@
 # BreakALeg security rehearsal
 
-Run: 62b98e8b-d7c8-492d-9ddb-16360265183e · Version: 0\.1\.0
+Run: 32451b35-2907-4da2-be9f-6f3e54a1f71f · Version: 0\.1\.1
 
-Environment: local · Target: http://127\.0\.0\.1:65317
+Environment: local · Target: http://127\.0\.0\.1:49861
 
-Started: 2026-10-22T18:13:27\.431Z · Commit: not recorded
+Started: 2026-10-22T18:24:36\.814Z · Commit: not recorded
 
-Requests: 5 · Findings: 0 · Blocked checks: 0
+Requests: 5 · Findings: 0 · Incomplete checks: 0
 
 Evidence: 0 runtime reproduced; 0 source supported; 0 need verification.
 
@@ -14,9 +14,9 @@ This report covers only the listed fixtures and checks. No findings does not est
 
 ## Check coverage
 
-| Check | Result | Explanation |
-| --- | --- | --- |
-| owner-note | no-issue-observed | The owner baseline succeeded and both unauthorized attempts were denied or returned an empty collection; only this fixture and operation were tested |
+| Check | Result | Complete | Explanation |
+| --- | --- | --- | --- |
+| owner-note | no-issue-observed | yes | The owner baseline succeeded and both unauthorized attempts were denied or returned an empty collection; only this fixture and operation were tested |
 
 ## Findings
 

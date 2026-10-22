@@ -8,11 +8,11 @@ export function renderReport(report: RunReport): string {
     `Run: ${plain(report.runId)} · Version: ${plain(report.toolVersion)}`, '',
     `Environment: ${plain(report.mode)} · Target: ${plain(report.targetOrigin ?? 'no runtime target')}`, '',
     `Started: ${plain(report.startedAt)} · Commit: ${plain(report.commit ?? 'not recorded')}`, '',
-    `Requests: ${report.requestsMade} · Findings: ${findings.length} · Blocked checks: ${report.checks.filter(c => c.status === 'blocked').length}`, '',
+    `Requests: ${report.requestsMade} · Findings: ${findings.length} · Incomplete checks: ${report.checks.filter(c => !c.complete).length}`, '',
     `Evidence: ${findings.filter(f => f.evidenceStatus === 'runtime-reproduced').length} runtime reproduced; ${findings.filter(f => f.evidenceStatus === 'source-supported').length} source supported; ${findings.filter(f => f.evidenceStatus === 'needs-verification').length} need verification.`, '',
     'This report covers only the listed fixtures and checks. No findings does not establish that the application is secure.', '',
-    '## Check coverage', '', '| Check | Result | Explanation |', '| --- | --- | --- |',
-    ...report.checks.map(c => `| ${plain(c.id)} | ${plain(c.status)} | ${plain(c.reason)} |`), '',
+    '## Check coverage', '', '| Check | Result | Complete | Explanation |', '| --- | --- | --- | --- |',
+    ...report.checks.map(c => `| ${plain(c.id)} | ${plain(c.status)} | ${c.complete ? 'yes' : 'no'} | ${plain(c.reason)} |`), '',
     '## Findings', ''
   ];
   if (!findings.length) lines.push('No findings were recorded for these checks. Review blocked checks and limitations.', '');

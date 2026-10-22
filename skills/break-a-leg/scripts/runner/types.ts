@@ -36,12 +36,13 @@ export type CheckResult = {
   id: string;
   category: string;
   status: Status;
+  complete: boolean;
   reason: string;
   observations: Observation[];
   findings: Finding[];
 };
 export type RunReport = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   toolVersion: string;
   runId: string;
   startedAt: string;

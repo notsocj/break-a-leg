@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { atPointer, parsePlan } from './plan.ts';
 import { ScopedTransport } from './transport.ts';
 import type { CheckResult, Finding, Plan, RunReport } from './types.ts';
+import { VERSION } from './version.ts';
 
 function envValue(env: NodeJS.ProcessEnv, name: string): string {
   const value = env[name];
@@ -58,7 +59,7 @@ export async function runPlan(raw: unknown, options: { env?: NodeJS.ProcessEnv; 
   const plan = parsePlan(raw);
   const transport = new ScopedTransport(plan);
   const startedAt = new Date().toISOString();
-  const checks: CheckResult[] = plan.probes.map(p => ({ id: p.id, category: p.kind, status: 'skipped', reason: 'Not executed', observations: [], findings: [] }));
+  const checks: CheckResult[] = plan.probes.map(p => ({ id: p.id, category: p.kind, status: 'skipped', complete: false, reason: 'Not executed', observations: [], findings: [] }));
   let creds: ReturnType<typeof credentials>;
   let preflightFailure: string | undefined;
   try {
@@ -91,15 +92,25 @@ export async function runPlan(raw: unknown, options: { env?: NodeJS.ProcessEnv; 
         if (leaked) check.findings.push(finding(probe.id, probe.path, actor));
         else if (![401, 403, 404].includes(response.status) && !(response.status === 200 && response.isJson && Array.isArray(response.json) && response.json.length === 0)) ambiguous = true;
       }
-      check.status = check.findings.length ? 'issue-found' : ambiguous ? 'blocked' : 'no-issue-observed';
-      check.reason = check.findings.length ? 'A caller outside the declared access policy received the synthetic private marker' : ambiguous ? 'Response was neither a recognized denial nor the expected marker; inspect access semantics before deciding' : 'The owner baseline succeeded and both unauthorized attempts were denied or returned an empty collection; only this fixture and operation were tested';
+      check.complete = !ambiguous;
+      if (check.findings.length) {
+        check.status = 'issue-found';
+        check.reason = 'A caller outside the declared access policy received the synthetic private marker';
+        if (ambiguous) check.reason += '; another actor response was inconclusive, so coverage remains incomplete';
+      } else if (ambiguous) {
+        check.status = 'blocked';
+        check.reason = 'Response was neither a recognized denial nor the expected marker; inspect access semantics before deciding';
+      } else {
+        check.status = 'no-issue-observed';
+        check.reason = 'The owner baseline succeeded and both unauthorized attempts were denied or returned an empty collection; only this fixture and operation were tested';
+      }
     } catch (error) {
       check.status = check.findings.length ? 'issue-found' : 'blocked';
       check.reason = `${safeReason(error)}${check.findings.length ? '; a previously reproduced finding is retained' : ''}`;
     }
   }
   const report: RunReport = {
-    schemaVersion: 1, toolVersion: '0.1.0', runId: randomUUID(), startedAt, finishedAt: new Date().toISOString(),
+    schemaVersion: 2, toolVersion: VERSION, runId: randomUUID(), startedAt, finishedAt: new Date().toISOString(),
     mode: plan.environment, targetOrigin: plan.target, commit: options.commit ?? null,
     planSha256: createHash('sha256').update(JSON.stringify(plan)).digest('hex'), requestsMade: transport.count, checks,
     limitations: [

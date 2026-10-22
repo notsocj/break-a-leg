@@ -6,6 +6,7 @@ import { join, resolve } from 'node:path';
 import { spawn } from 'node:child_process';
 import { startFixture, planFor, testEnv } from './fixture-server.mjs';
 import { renderReport } from '../runner/report.ts';
+import { VERSION } from '../runner/version.ts';
 
 function node(args, options = {}) {
   return new Promise((resolvePromise, reject) => {
@@ -56,4 +57,38 @@ test('source-only report works with no staging target and preserves its evidence
   assert.ok(markdown.includes('no runtime target'));
   assert.ok(markdown.includes('0 runtime reproduced; 1 source supported'));
   assert.ok(markdown.includes('source-supported'));
+});
+test('CLI returns exit 2 while retaining findings for a mixed-conclusion check', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'bal-incomplete-')); t.after(() => rm(root, { recursive: true, force: true }));
+  const f = await startFixture(({ req, actor, send }) => {
+    if (req.url === '/me') return false;
+    send(200, actor === 'anonymous' ? { unknown: true } : { body: testEnv.BAL_FIXTURE_MARKER });
+    return true;
+  }); t.after(f.close);
+  const plan = join(root, 'plan.json'); await writeFile(plan, JSON.stringify(planFor(f.target)));
+  const r = await node(['runner/cli.ts', 'run', plan, '--out', join(root, 'run')], { env: { ...process.env, ...testEnv } });
+  assert.equal(r.code, 2, r.stderr);
+  const report = JSON.parse(await readFile(join(root, 'run/report.json'), 'utf8'));
+  assert.equal(report.schemaVersion, 2);
+  assert.equal(report.checks[0].complete, false);
+  assert.equal(report.checks[0].findings.length, 1);
+});
+test('runtime, package, lockfile and installed CLI expose the same version', async () => {
+  const pkg = JSON.parse(await readFile('package.json', 'utf8'));
+  const lock = JSON.parse(await readFile('package-lock.json', 'utf8'));
+  assert.equal(VERSION, pkg.version); assert.equal(VERSION, lock.version);
+  assert.equal(VERSION, lock.packages[''].version);
+  const r = await node(['skills/break-a-leg/scripts/break-a-leg.mjs', '--version']);
+  assert.equal(r.code, 0, r.stderr); assert.equal(r.stdout.trim(), VERSION);
+});
+test('bundler rejects stale generated files and removes them when rebuilding', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'bal-bundle-')); t.after(() => rm(root, { recursive: true, force: true }));
+  for (const path of ['runner', 'schemas', 'skills', 'scripts', 'LICENSE']) await cp(path, join(root, path), { recursive: true });
+  const obsolete = join(root, 'skills/break-a-leg/scripts/runner/obsolete.ts');
+  await writeFile(obsolete, 'export const stale = true;');
+  const check = await node(['scripts/bundle.mjs', '--check'], { cwd: root });
+  assert.notEqual(check.code, 0); assert.match(check.stderr, /Obsolete generated file/);
+  const rebuild = await node(['scripts/bundle.mjs'], { cwd: root }); assert.equal(rebuild.code, 0, rebuild.stderr);
+  await assert.rejects(readFile(obsolete), { code: 'ENOENT' });
+  assert.equal((await node(['scripts/bundle.mjs', '--check'], { cwd: root })).code, 0);
 });

@@ -1,19 +1,20 @@
 {
-  "schemaVersion": 1,
-  "toolVersion": "0.1.0",
-  "runId": "62b98e8b-d7c8-492d-9ddb-16360265183e",
-  "startedAt": "2026-10-22T18:13:27.431Z",
-  "finishedAt": "2026-10-22T18:13:27.635Z",
+  "schemaVersion": 2,
+  "toolVersion": "0.1.1",
+  "runId": "32451b35-2907-4da2-be9f-6f3e54a1f71f",
+  "startedAt": "2026-10-22T18:24:36.814Z",
+  "finishedAt": "2026-10-22T18:24:37.018Z",
   "mode": "local",
-  "targetOrigin": "http://127.0.0.1:65317",
+  "targetOrigin": "http://127.0.0.1:49861",
   "commit": null,
-  "planSha256": "f91c65597e6c98d5e7ac143c1196718ecc5820b8153c9865c3c55970f45fedbf",
+  "planSha256": "ff7b0d63dff72d398d0a45942c08e9d5933c63c44a6dcce8015a40a069ece178",
   "requestsMade": 5,
   "checks": [
     {
       "id": "owner-note",
       "category": "authorization-read",
       "status": "no-issue-observed",
+      "complete": true,
       "reason": "The owner baseline succeeded and both unauthorized attempts were denied or returned an empty collection; only this fixture and operation were tested",
       "observations": [
         {

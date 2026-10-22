@@ -1,5 +1,6 @@
 import { readdir, readFile, realpath, stat } from 'node:fs/promises';
 import { basename, join, relative } from 'node:path';
+import { VERSION } from './version.ts';
 
 const ignored = new Set(['.git', '.svn', '.hg', 'node_modules', '.dart_tool', '.gradle', '.idea', '.next', '.expo', '.venv', 'venv', 'Pods', 'Carthage', 'DerivedData', 'build', 'dist', 'coverage', '.break-a-leg']);
 export async function discover(root: string, maxEntries = 20000) {
@@ -50,7 +51,7 @@ export async function discover(root: string, maxEntries = 20000) {
     }
   }
   return {
-    schemaVersion: 1, toolVersion: '0.1.0', project: basename(base),
+    schemaVersion: 1, toolVersion: VERSION, project: basename(base),
     stacks: [...new Set(signals.map(s => s.stack))].sort(), signals,
     entriesVisited: visited, truncated, unreadableEntries: unreadable,
     limitations: [

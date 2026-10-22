@@ -3,6 +3,7 @@ import https from 'node:https';
 import type { LookupFunction } from 'node:net';
 import type { Plan } from './types.ts';
 import { resolvePath } from './plan.ts';
+import { VERSION } from './version.ts';
 
 export type Response = { status: number; json: unknown; isJson: boolean };
 const loopbackLookup: LookupFunction = (_host, options, callback) => {
@@ -26,7 +27,7 @@ export class ScopedTransport {
       const pause = this.plan.limits.delayMs - (Date.now() - this.lastStarted);
       if (pause > 0) await new Promise(resolve => setTimeout(resolve, pause));
       this.lastStarted = Date.now(); this.count++;
-      const headers: Record<string, string> = { accept: 'application/json', 'accept-encoding': 'identity', 'user-agent': 'BreakALeg/0.1.0' };
+      const headers: Record<string, string> = { accept: 'application/json', 'accept-encoding': 'identity', 'user-agent': `BreakALeg/${VERSION}` };
       if (token) headers.authorization = `Bearer ${token}`;
       if (publicApiKey) headers.apikey = publicApiKey;
       return await new Promise<Response>((resolve, reject) => {

@@ -12,6 +12,7 @@ test('reproduces cross-user and anonymous leaks with distinct identity preflight
   const f = await fixture(t, 'vulnerable');
   const r = await runPlan(planFor(f.target), { env: testEnv });
   assert.equal(r.checks[0].status, 'issue-found');
+  assert.equal(r.checks[0].complete, true);
   assert.equal(r.checks[0].findings.length, 2);
   assert.equal(r.requestsMade, 5);
   assert.deepEqual(f.seen.map(x => x.actor), ['owner', 'other', 'owner', 'other', 'anonymous']);
@@ -43,6 +44,7 @@ for (const behavior of ['same-identity', 'bad-identity', 'missing-fixture', 'amb
     const p = planFor(f.target); p.limits.timeoutMs = 150;
     const r = await runPlan(p, { env: testEnv });
     assert.equal(r.checks[0].status, 'blocked');
+    assert.equal(r.checks[0].complete, false);
     assert.equal(r.checks[0].findings.length, 0);
     if (['same-identity', 'bad-identity'].includes(behavior)) assert.equal(f.seen.length, 2);
     if (['redirect', 'rate-limit', 'server-error', 'oversize', 'timeout'].includes(behavior)) assert.equal(f.seen.length, 3);
@@ -67,6 +69,7 @@ test('early finding survives a subsequent transport failure', async t => {
   const r = await runPlan(planFor(f.target), { env: testEnv });
   assert.equal(r.checks[0].status, 'issue-found'); assert.equal(r.checks[0].findings.length, 1);
   assert.equal(r.checks[0].observations.length, 2);
+  assert.equal(r.checks[0].complete, false);
 });
 test('transport stop prevents subsequent probes and never retries', async t => {
   const f = await fixture(t, 'rate-limit');
@@ -143,4 +146,17 @@ test('concurrent calls are refused without a second request', async t => {
   const first = transport.get('/me', testEnv.BAL_OWNER_TOKEN);
   await assert.rejects(transport.get('/me', testEnv.BAL_OTHER_TOKEN), /Concurrent/);
   await first; assert.equal(f.seen.length, 1);
+});
+test('a confirmed leak does not hide another actor\'s inconclusive response', async t => {
+  const f = await fixture(t, ({ req, actor, send }) => {
+    if (req.url === '/me') return false;
+    send(200, actor === 'anonymous' ? { unrecognized: true } : { body: testEnv.BAL_FIXTURE_MARKER });
+    return true;
+  });
+  const r = await runPlan(planFor(f.target), { env: testEnv });
+  assert.equal(r.checks[0].status, 'issue-found');
+  assert.equal(r.checks[0].findings.length, 1);
+  assert.equal(r.checks[0].observations.length, 3);
+  assert.equal(r.checks[0].complete, false);
+  assert.match(renderReport(r), /Incomplete checks: 1/);
 });

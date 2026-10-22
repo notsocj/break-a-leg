@@ -6,8 +6,9 @@ import { parsePlan } from './plan.ts';
 import { discover } from './discover.ts';
 import { runPlan } from './run.ts';
 import { renderReport } from './report.ts';
+import { VERSION } from './version.ts';
 
-const help = `BreakALeg 0.1.0 — Node 22.18+ (24 LTS recommended)
+const help = `BreakALeg ${VERSION} — Node 22.18+ (24 LTS recommended)
 
   node <skill>/scripts/break-a-leg.mjs discover <project-root>
   node <skill>/scripts/break-a-leg.mjs validate <plan.json>
@@ -29,6 +30,7 @@ async function readPlan(path: string) {
 
 export async function main(args: string[]) {
   const [command, input, ...rest] = args;
+  if (command === '--version' && !input) { console.log(VERSION); return 0; }
   if (!command || command === '--help' || command === 'help') { console.log(help); return 0; }
   if (!input || !['discover', 'validate', 'run'].includes(command)) throw new Error('Unknown command or missing input; use --help');
   if (command === 'discover') {
@@ -58,7 +60,7 @@ export async function main(args: string[]) {
   await writeFile(join(out, 'report.json'), JSON.stringify(report, null, 2) + '\n', { mode: 0o600, flag: 'wx' });
   await writeFile(join(out, 'report.md'), renderReport(report), { mode: 0o600, flag: 'wx' });
   const findings = report.checks.reduce((n, c) => n + c.findings.length, 0);
-  const blocked = report.checks.some(c => c.status === 'blocked' || c.reason.includes('Run stopped') || c.observations.length < 3);
+  const blocked = report.checks.some(c => !c.complete);
   console.log(`BreakALeg completed: ${report.requestsMade} requests; ${findings} findings; ${blocked ? 'incomplete coverage' : 'configured probes completed'}. Reports saved to the requested directory.`);
   return blocked ? 2 : findings ? 1 : 0;
 }

@@ -58,6 +58,6 @@ The public API-key header is optional. The runner rejects recognizable Supabase 
 
 Limits: 1–25 probes, at most 100 requests, one in flight, 50–5000 ms minimum delay, 100–15000 ms deadline per request, 1 KiB–1 MiB response cap. The budget must allow two preflights plus three requests per probe. There are no automatic retries.
 
-Exit codes: `0` = configured checks completed without findings; `1` = findings; `2` = error or incomplete/blocked coverage, even if findings also exist. Always inspect JSON: exit 0 is not a security certificate.
+Exit codes: `0` = configured checks completed without findings; `1` = findings with complete configured coverage; `2` = error or incomplete/blocked coverage, even if findings also exist. Report-schema-2 checks include `complete` explicitly. For example, another user receiving a private marker while the anonymous request is inconclusive is an issue with `complete: false`, and the CLI exits 2. Always inspect JSON: exit 0 is not a security certificate. `--version` prints the installed helper version offline.
 
 The original plan and fixture are needed for exact reproduction. Query values are omitted from human-readable finding paths. Store plans privately with synthetic IDs and no credentials. If interrupted before output is written, treat the run as incomplete; the runner makes no persistent remote changes of its own.

@@ -1,4 +1,4 @@
-import { readdir, readFile, mkdir, writeFile } from 'node:fs/promises';
+import { readdir, readFile, mkdir, writeFile, unlink } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 
@@ -9,7 +9,16 @@ for (const [source, destination, suffix] of [
   ['schemas', 'skills/break-a-leg/references/schemas', '.json']
 ]) {
   if (!check) await mkdir(join(root, destination), { recursive: true });
-  for (const name of (await readdir(join(root, source))).filter(n => n.endsWith(suffix))) {
+  const names = (await readdir(join(root, source))).filter(n => n.endsWith(suffix));
+  const existing = await readdir(join(root, destination), { withFileTypes: true });
+  for (const entry of existing) {
+    if (!entry.isFile() || !entry.name.endsWith(suffix)) throw new Error(`Unexpected entry in generated directory: ${entry.name}`);
+    if (!names.includes(entry.name)) {
+      if (check) throw new Error(`Obsolete generated file: ${entry.name}`);
+      await unlink(join(root, destination, entry.name));
+    }
+  }
+  for (const name of names) {
     const content = await readFile(join(root, source, name));
     const target = join(root, destination, name);
     if (check) {

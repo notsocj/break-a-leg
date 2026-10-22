@@ -1,12 +1,12 @@
 # BreakALeg security rehearsal
 
-Run: b784c8d8-1bd2-4f73-9c38-3fd284b5d7f9 · Version: 0\.1\.0
+Run: b784c8d8-1bd2-4f73-9c38-3fd284b5d7f9 · Version: 0\.1\.1
 
 Environment: review · Target: no runtime target
 
 Started: 2026-10-22T18:14:32\.991037\+00:00 · Commit: not recorded
 
-Requests: 0 · Findings: 1 · Blocked checks: 1
+Requests: 0 · Findings: 1 · Incomplete checks: 2
 
 Evidence: 0 runtime reproduced; 1 source supported; 0 need verification.
 
@@ -14,12 +14,12 @@ This report covers only the listed fixtures and checks. No findings does not est
 
 ## Check coverage
 
-| Check | Result | Explanation |
-| --- | --- | --- |
-| private-note-policy | issue-found | The deliberately vulnerable Supabase source fixture grants private-note reads to both ordinary and anonymous callers\. This is source evidence only\. |
-| secure-policy-counterpart | no-issue-observed | The secure SQL fixture restricts SELECT to authenticated owners under its stated model\. This is a narrow source review; no deployed state or alternate access paths were verified\. |
-| live-backend-runtime | blocked | No actual Supabase or Firebase service is part of this source-only example\. The generic HTTP demo is a separate result\. |
-| native-device | skipped | Mobile fixtures are source snippets, not buildable apps or signed binaries\. |
+| Check | Result | Complete | Explanation |
+| --- | --- | --- | --- |
+| private-note-policy | issue-found | yes | The deliberately vulnerable Supabase source fixture grants private-note reads to both ordinary and anonymous callers\. This is source evidence only\. |
+| secure-policy-counterpart | no-issue-observed | yes | The secure SQL fixture restricts SELECT to authenticated owners under its stated model\. This is a narrow source review; no deployed state or alternate access paths were verified\. |
+| live-backend-runtime | blocked | no | No actual Supabase or Firebase service is part of this source-only example\. The generic HTTP demo is a separate result\. |
+| native-device | skipped | no | Mobile fixtures are source snippets, not buildable apps or signed binaries\. |
 
 ## Findings
 
@@ -54,8 +54,8 @@ Response bodies, authorization headers, identity values, and fixture markers are
 ## Limitations
 
 - Illustrative assessment of deliberately vulnerable and secure source fixtures, not a real customer app\.
-- No commit is recorded because this source package has not been initialized as a Git repository\.
 - No real database, mobile build, device, or deployed configuration was tested\.
+- This illustrative source review is a fixture example; it is not tied to a deployed commit\.
 
 ## Cleanup
 

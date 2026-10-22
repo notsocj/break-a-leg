@@ -13,6 +13,7 @@ Give the app a security rehearsal before launch. Identify meaningful weaknesses,
 2. Optionally run `node <skill-dir>/scripts/break-a-leg.mjs discover <project-root>` (Node 22.18+, preferably 24 LTS). Discovery is offline and identifies candidate stacks; it does not find vulnerabilities. If Node is unavailable, inspect manifests manually and continue the review.
 3. Read only the applicable mobile and backend references listed below. Generated iOS/Android folders in Flutter/React Native projects are not independent apps. Ask which app to prioritize if a monorepo contains unrelated products.
 4. Map the sensitive workflows: identity, ownership/membership, roles, paid operations, uploads, private storage, and expensive API calls. Use product rules supplied by the user or code; record uncertainty rather than inventing requirements.
+5. Briefly state the selected app/backend and review mode before a longer investigation. Explain missing runtime coverage plainly; do not front-load a checklist of optional tools or environment setup.
 
 ## Choose the mode without making staging mandatory
 
@@ -35,7 +36,7 @@ Read relevant [check guides](#check-guides), form specific hypotheses, and prior
 
 ## Deliver and retest
 
-Use [reporting.md](references/reporting.md). Include findings, the evidence level, tested commit/environment, coverage gaps, and cleanup status. Preserve the runner's original output; add source analysis in a separate reviewed report. Use the schema referenced there.
+Use [reporting.md](references/reporting.md). Include findings, the evidence level, tested commit/environment, coverage gaps, and cleanup status. A confirmed issue may coexist with an incomplete check; retain both facts. Preserve the runner's original output; add source analysis in a separate reviewed report. Use the schema referenced there.
 
 Group findings by root cause when appropriate, while retaining distinct affected operations and reproductions. Trace each meaningful finding to actual code or explicitly say that the backend was unavailable. Describe impact without inventing affected-user counts.
 

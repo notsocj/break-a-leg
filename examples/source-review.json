@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "toolVersion": "0.1.0",
+  "schemaVersion": 2,
+  "toolVersion": "0.1.1",
   "runId": "b784c8d8-1bd2-4f73-9c38-3fd284b5d7f9",
   "startedAt": "2026-10-22T18:14:32.991037+00:00",
   "finishedAt": "2026-10-22T18:14:32.991037+00:00",
@@ -39,7 +39,8 @@
           "remediation": "For the declared owner-only model, restrict SELECT to the owner identity as illustrated by the secure counterpart; review all other applicable policies and grants.",
           "retest": "Run ordinary-user and anonymous access tests in an isolated Supabase project, including a successful owner baseline. Not executed in this source review."
         }
-      ]
+      ],
+      "complete": true
     },
     {
       "id": "secure-policy-counterpart",
@@ -47,7 +48,8 @@
       "status": "no-issue-observed",
       "reason": "The secure SQL fixture restricts SELECT to authenticated owners under its stated model. This is a narrow source review; no deployed state or alternate access paths were verified.",
       "observations": [],
-      "findings": []
+      "findings": [],
+      "complete": true
     },
     {
       "id": "live-backend-runtime",
@@ -55,7 +57,8 @@
       "status": "blocked",
       "reason": "No actual Supabase or Firebase service is part of this source-only example. The generic HTTP demo is a separate result.",
       "observations": [],
-      "findings": []
+      "findings": [],
+      "complete": false
     },
     {
       "id": "native-device",
@@ -63,13 +66,14 @@
       "status": "skipped",
       "reason": "Mobile fixtures are source snippets, not buildable apps or signed binaries.",
       "observations": [],
-      "findings": []
+      "findings": [],
+      "complete": false
     }
   ],
   "limitations": [
     "Illustrative assessment of deliberately vulnerable and secure source fixtures, not a real customer app.",
-    "No commit is recorded because this source package has not been initialized as a Git repository.",
-    "No real database, mobile build, device, or deployed configuration was tested."
+    "No real database, mobile build, device, or deployed configuration was tested.",
+    "This illustrative source review is a fixture example; it is not tied to a deployed commit."
   ],
   "cleanup": "No target requests or remote data changes were made."
 }

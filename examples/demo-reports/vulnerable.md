@@ -1,12 +1,12 @@
 # BreakALeg security rehearsal
 
-Run: c1f71d36-28b7-4f22-a3e3-c01fb1b00d0e · Version: 0\.1\.0
+Run: 4ae6a6d2-25aa-4a0e-92a3-2680cf869bba · Version: 0\.1\.1
 
-Environment: local · Target: http://127\.0\.0\.1:65311
+Environment: local · Target: http://127\.0\.0\.1:49849
 
-Started: 2026-10-22T18:13:27\.219Z · Commit: not recorded
+Started: 2026-10-22T18:24:36\.604Z · Commit: not recorded
 
-Requests: 5 · Findings: 2 · Blocked checks: 0
+Requests: 5 · Findings: 2 · Incomplete checks: 0
 
 Evidence: 2 runtime reproduced; 0 source supported; 0 need verification.
 
@@ -14,9 +14,9 @@ This report covers only the listed fixtures and checks. No findings does not est
 
 ## Check coverage
 
-| Check | Result | Explanation |
-| --- | --- | --- |
-| owner-note | issue-found | A caller outside the declared access policy received the synthetic private marker |
+| Check | Result | Complete | Explanation |
+| --- | --- | --- | --- |
+| owner-note | issue-found | yes | A caller outside the declared access policy received the synthetic private marker |
 
 ## Findings
 

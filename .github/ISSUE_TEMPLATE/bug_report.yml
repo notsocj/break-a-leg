@@ -1,0 +1,29 @@
+name: Bug report
+description: Report a reproducible problem with BreakALeg. Use private reporting for security vulnerabilities.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For vulnerabilities in BreakALeg itself, use [private vulnerability reporting](https://github.com/notsocj/break-a-leg/security/advisories/new).
+        Do not include credentials, customer data, or private app assessment reports here.
+  - type: input
+    id: version
+    attributes:
+      label: BreakALeg version
+      description: Run the helper with --version if available.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Node version, coding agent, mobile framework, and review/local/staging mode.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Use synthetic data. Include expected and actual behavior plus redacted errors.
+    validations:
+      required: true

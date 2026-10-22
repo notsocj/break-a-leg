@@ -5,7 +5,7 @@
   "additionalProperties": false,
   "properties": {
     "schemaVersion": {
-      "const": 1
+      "const": 2
     },
     "toolVersion": {
       "type": "string"
@@ -174,6 +174,10 @@
                 "retest"
               ]
             }
+          },
+          "complete": {
+            "type": "boolean",
+            "description": "Whether this declared check has conclusive results for every planned actor/operation. Findings may coexist with incomplete coverage."
           }
         },
         "required": [
@@ -182,7 +186,8 @@
           "status",
           "reason",
           "observations",
-          "findings"
+          "findings",
+          "complete"
         ]
       }
     },

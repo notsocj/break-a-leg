@@ -2,9 +2,11 @@
 
 **Give your app a security rehearsal before launch.**
 
+[![Verify BreakALeg](https://github.com/notsocj/break-a-leg/actions/workflows/test.yml/badge.svg)](https://github.com/notsocj/break-a-leg/actions/workflows/test.yml)
+
 BreakALeg is an open-source agent skill for mobile founders. It reviews an app and its backend, investigates security weaknesses, and verifies selected issues against local or staging services when available. Staging is optional: a source review is a useful first run.
 
-Version **0.1.0 — early release**. MIT licensed. No telemetry, hosted account, or separate model API key is required by this package. Your coding agent's own model connection and data handling still apply.
+Version **0.1.1 — early release**. MIT licensed. No telemetry, hosted account, or separate model API key is required by this package. Your coding agent's own model connection and data handling still apply.
 
 ## What you get
 
@@ -20,9 +22,11 @@ Version **0.1.0 — early release**. MIT licensed. No telemetry, hosted account,
 
 Copy the **entire** `skills/break-a-leg` folder into your Codex skills directory (`$CODEX_HOME/skills`, or `~/.codex/skills`). If a directory of that name already exists, inspect or back it up before replacing it. The folder is self-contained, including its helper runtime and schemas.
 
-For example, from the repository root, this refuses to overwrite an existing installation:
+Clone the repository and install. The installer refuses to overwrite an existing installation:
 
 ```sh
+git clone https://github.com/notsocj/break-a-leg.git
+cd break-a-leg
 python3 scripts/install.py
 ```
 
@@ -31,6 +35,8 @@ Start a new Codex chat if the skill is not discovered in the current one. Invoke
 ```text
 Use $break-a-leg to review this app and backend before launch. Start with source analysis. Use an existing local or staging environment only when its target, test accounts, and scope are clear. Report reproduced issues separately from source-supported findings and checks you could not run.
 ```
+
+To update an installed copy after pulling a newer version, run `python3 scripts/install.py --update`. It stages the replacement before changing the installed skill and preserves the previous copy, including local edits, under `skill-backups/` next to the skills directory. The installer prints the exact backup path. `--skills-dir /path/to/skills` supports a custom installation location.
 
 For another agent supporting the same skill-folder format, copy the folder into that agent's documented skill location. Agent-specific installation/discovery compatibility has not been tested beyond the Codex format; no universal cross-agent installer is claimed.
 
@@ -56,12 +62,15 @@ From the repository root:
 
 ```sh
 npm test
+npm run test:installer
 npm run demo
 ```
 
 The demo starts two temporary loopback-only synthetic APIs, runs the same private-note check against a vulnerable and a secure implementation, writes reports under `.break-a-leg/demo/`, and closes both servers. It does not connect to a real app or database. It requires permission to bind a local port.
 
 Expected outcome: the vulnerable fixture yields two findings (other-user and anonymous access); the secure fixture yields no issue observed for that one operation. The demo exits 0 when this expected comparison succeeds.
+
+See the [vulnerable demo report](examples/demo-reports/vulnerable.md), [secure counterpart](examples/demo-reports/secure.md), and [source-only review](examples/source-review.md). A check can find a real issue and still have incomplete coverage; reports preserve both facts.
 
 ## Use the helper directly
 
@@ -73,6 +82,8 @@ node skills/break-a-leg/scripts/break-a-leg.mjs validate examples/local-api.plan
 Validation is offline. The examples intentionally contain environment references rather than tokens. Adapt their origin, endpoint, fixture, and response pointer to your isolated service before using `run`. Full details: [runner guide](skills/break-a-leg/references/runner.md).
 
 The runner records authorization assertions but cannot prove ownership or environment isolation. GET endpoints must be semantically read-only. It blocks redirects, does not retry, limits requests and response sizes, and stops target traffic on transport failure, 429, or 5xx. These bounds apply to its own requests, not arbitrary tools used by an agent. It is not a sandbox.
+
+CLI exit codes: **0** means the configured checks completed without findings; **1** means findings with complete configured coverage; **2** means error or incomplete coverage, even when a finding was confirmed. None of these codes certifies the app as secure.
 
 ## Repository structure
 
@@ -95,4 +106,4 @@ The included tests exercise a synthetic HTTP service and discovery manifests. Th
 
 ## License and reporting
 
-[MIT](LICENSE). Report vulnerabilities privately using the process in [SECURITY.md](SECURITY.md); do not post credentials or exploit details in a public issue.
+[MIT](LICENSE). [Report a vulnerability privately](https://github.com/notsocj/break-a-leg/security/advisories/new), or see [SECURITY.md](SECURITY.md). Use ordinary issues for reproducible bugs and feature requests, without credentials or private assessment data. See [CHANGELOG.md](CHANGELOG.md) for release changes.
