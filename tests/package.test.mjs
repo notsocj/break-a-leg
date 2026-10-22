@@ -1,0 +1,59 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, cp, readFile, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { spawn } from 'node:child_process';
+import { startFixture, planFor, testEnv } from './fixture-server.mjs';
+import { renderReport } from '../runner/report.ts';
+
+function node(args, options = {}) {
+  return new Promise((resolvePromise, reject) => {
+    const child = spawn(process.execPath, args, { ...options, stdio: ['ignore', 'pipe', 'pipe'] });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', c => stdout += c); child.stderr.on('data', c => stderr += c);
+    child.once('error', reject); child.once('close', code => resolvePromise({ code, stdout, stderr }));
+  });
+}
+
+test('bundled runner and schemas match canonical source', async () => {
+  const r = await node(['scripts/bundle.mjs', '--check']); assert.equal(r.code, 0, r.stderr);
+});
+test('copied skill runs independently of repository and writes sanitized reports', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'bal-package-')); t.after(() => rm(root, { recursive: true, force: true }));
+  const skill = join(root, 'installed-skill'); await cp('skills/break-a-leg', skill, { recursive: true });
+  const cli = join(skill, 'scripts', 'break-a-leg.mjs');
+  const fixture = await startFixture('vulnerable'); t.after(fixture.close);
+  const plan = join(root, 'plan.json'); await writeFile(plan, JSON.stringify(planFor(fixture.target)));
+  const env = { ...process.env, ...testEnv };
+  const discovery = await node([cli, 'discover', resolve('tests/fixtures/mobile/flutter')], { cwd: root });
+  assert.equal(discovery.code, 0, discovery.stderr); assert.ok(JSON.parse(discovery.stdout).stacks.includes('flutter'));
+  const validation = await node([cli, 'validate', plan], { cwd: root, env });
+  assert.equal(validation.code, 0, validation.stderr); assert.equal(fixture.seen.length, 0);
+  const out = join(root, 'run');
+  const result = await node([cli, 'run', plan, '--out', out], { cwd: root, env });
+  assert.equal(result.code, 1, result.stderr);
+  const report = JSON.parse(await readFile(join(out, 'report.json'), 'utf8'));
+  assert.equal(report.checks[0].findings.length, 2);
+  const contents = JSON.stringify(report) + await readFile(join(out, 'report.md'), 'utf8') + result.stdout + result.stderr;
+  for (const secret of Object.values(testEnv)) assert.ok(!contents.includes(secret));
+  const before = fixture.seen.length;
+  const overwrite = await node([cli, 'run', plan, '--out', out], { cwd: root, env });
+  assert.equal(overwrite.code, 2); assert.equal(fixture.seen.length, before);
+});
+test('CLI blocked preflight writes a report and exits 2 without sending credentials', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'bal-cli-')); t.after(() => rm(root, { recursive: true, force: true }));
+  const f = await startFixture('secure'); t.after(f.close);
+  const plan = join(root, 'plan.json'); await writeFile(plan, JSON.stringify(planFor(f.target)));
+  const r = await node(['runner/cli.ts', 'run', plan, '--out', join(root, 'run')], { env: {} });
+  assert.equal(r.code, 2, r.stderr); assert.equal(f.seen.length, 0);
+  const report = JSON.parse(await readFile(join(root, 'run/report.json'), 'utf8'));
+  assert.equal(report.checks[0].status, 'blocked');
+});
+test('source-only report works with no staging target and preserves its evidence level', async () => {
+  const report = JSON.parse(await readFile('examples/source-review.json', 'utf8'));
+  const markdown = renderReport(report);
+  assert.ok(markdown.includes('no runtime target'));
+  assert.ok(markdown.includes('0 runtime reproduced; 1 source supported'));
+  assert.ok(markdown.includes('source-supported'));
+});

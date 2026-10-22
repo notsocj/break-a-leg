@@ -1,0 +1,30 @@
+# Findings and coverage
+
+Preserve original runner output as `report.json` and `report.md`. Write the agent's consolidated assessment separately, for example `review.md` and `review.json`, under a user-approved output location or the project's ignored `.break-a-leg/` directory. Do not publish or commit sensitive reports automatically.
+
+The shared [report schema](schemas/report.schema.json) supports review/local/staging modes. In review mode, `targetOrigin` and `planSha256` may be null, `requestsMade` is 0, and observations can be empty. Use tool version 0.1.0. Record the actual commit or null plus a limitation if it is unavailable or the working tree is dirty. No schema field implies that a check was run.
+
+Each finding needs:
+
+- Stable ID, concrete title, affected feature/operation, severity and justified impact.
+- Evidence status: `runtime-reproduced`, `source-supported`, or `needs-verification`. Keep this separate from severity. A source finding can be serious without runtime confirmation.
+- Preconditions, ordinary user roles, actual reproduction steps, expected versus observed behavior.
+- Redacted evidence, file paths/verified line numbers, and the causal server/policy location when available.
+- Focused remediation and a regression/retest procedure. Say “not executed” for proposed tests.
+
+Each check gets exactly one result: `issue-found`, `no-issue-observed`, `blocked`, `skipped`, or `not-applicable`. A blocked request cannot become a pass. `no-issue-observed` describes only the tested operation and conditions. Log remaining actor coverage if a run stops after a finding.
+
+In the narrative, include: tested environment and parity limits, source/runtime coverage, missing backend or device access, fixture cleanup and failures, and a prioritized next action. Never invent source locations or attach a score implying complete security.
+
+## Redaction
+
+Do not persist access/refresh tokens, private keys, passwords, cookies, production records, payment data, or private API response bodies. Replace sensitive evidence with field names, booleans, status codes, and synthetic examples. Secret exposure findings record location/type/reachability, not the value. Reports still disclose weaknesses: store locally, exclude from version control, and share only when requested.
+
+## Suggested narrative structure
+
+1. Scope and outcome: number of reproduced/source-supported issues and material limits.
+2. Findings in impact order: evidence, cause, remediation, retest.
+3. Coverage table: check, environment, status, reason.
+4. Cleanup: resource identifiers without credentials, removed/remaining, next action.
+
+If an ordinary denial body contains data but not the configured marker, the helper cannot prove it harmless. Review observed application semantics separately; retain that narrow-coverage limitation.

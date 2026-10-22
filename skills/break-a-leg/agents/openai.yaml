@@ -1,0 +1,4 @@
+interface:
+  display_name: "BreakALeg"
+  short_description: "Hunt security flaws in mobile apps before launch"
+  default_prompt: "Use $break-a-leg to review this mobile app and verify security issues in an available local or staging environment."

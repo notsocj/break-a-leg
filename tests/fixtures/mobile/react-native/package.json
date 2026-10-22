@@ -1,0 +1,9 @@
+{
+  "name": "bal-react-native-fixture",
+  "private": true,
+  "dependencies": {
+    "react-native": "fixture-only",
+    "expo": "fixture-only",
+    "@supabase/supabase-js": "fixture-only"
+  }
+}

@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BreakALeg report",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "toolVersion": {
+      "type": "string"
+    },
+    "runId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finishedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "mode": {
+      "enum": [
+        "review",
+        "local",
+        "staging"
+      ]
+    },
+    "targetOrigin": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "commit": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "planSha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "requestsMade": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "issue-found",
+              "no-issue-observed",
+              "blocked",
+              "skipped",
+              "not-applicable"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "observations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "actor": {
+                  "enum": [
+                    "owner",
+                    "other",
+                    "anonymous"
+                  ]
+                },
+                "status": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 599
+                },
+                "markerMatched": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "actor",
+                "status"
+              ]
+            }
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "severity": {
+                  "enum": [
+                    "critical",
+                    "high",
+                    "medium",
+                    "low",
+                    "informational"
+                  ]
+                },
+                "evidenceStatus": {
+                  "enum": [
+                    "runtime-reproduced",
+                    "source-supported",
+                    "needs-verification"
+                  ]
+                },
+                "impact": {
+                  "type": "string"
+                },
+                "reproduction": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "evidence": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "codeLocations": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "remediation": {
+                  "type": "string"
+                },
+                "retest": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "severity",
+                "evidenceStatus",
+                "impact",
+                "reproduction",
+                "evidence",
+                "codeLocations",
+                "remediation",
+                "retest"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "status",
+          "reason",
+          "observations",
+          "findings"
+        ]
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cleanup": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "toolVersion",
+    "runId",
+    "startedAt",
+    "finishedAt",
+    "mode",
+    "targetOrigin",
+    "commit",
+    "planSha256",
+    "requestsMade",
+    "checks",
+    "limitations",
+    "cleanup"
+  ]
+}

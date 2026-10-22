@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /notes/{noteId} {
+      // Deliberately vulnerable fixture: all callers can read private notes.
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

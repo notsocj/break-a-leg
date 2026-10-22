@@ -1,0 +1,8 @@
+node_modules/
+.break-a-leg/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+coverage/

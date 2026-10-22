@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "environment": "staging",
+  "target": "https://staging.example.invalid",
+  "scope": {
+    "authorized": true,
+    "isolatedTestData": true,
+    "readOnlyEndpoints": true
+  },
+  "limits": {
+    "maxRequests": 5,
+    "timeoutMs": 3000,
+    "delayMs": 150,
+    "maxResponseBytes": 65536
+  },
+  "accounts": {
+    "ownerTokenEnv": "BAL_OWNER_TOKEN",
+    "otherTokenEnv": "BAL_OTHER_TOKEN"
+  },
+  "identity": {
+    "path": "/me",
+    "subjectPointer": "/id"
+  },
+  "probes": [
+    {
+      "id": "private-note-read",
+      "kind": "authorization-read",
+      "path": "/notes/bal-synthetic-note",
+      "markerPointer": "/body",
+      "markerEnv": "BAL_FIXTURE_MARKER",
+      "privateFixture": true
+    }
+  ]
+}

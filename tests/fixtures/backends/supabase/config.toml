@@ -1,0 +1,2 @@
+# Discovery fixture only; use a real isolated project config for runtime tests.
+project_id = "break-a-leg-fixture"

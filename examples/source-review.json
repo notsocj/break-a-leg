@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "toolVersion": "0.1.0",
+  "runId": "b784c8d8-1bd2-4f73-9c38-3fd284b5d7f9",
+  "startedAt": "2026-10-22T18:14:32.991037+00:00",
+  "finishedAt": "2026-10-22T18:14:32.991037+00:00",
+  "mode": "review",
+  "targetOrigin": null,
+  "commit": null,
+  "planSha256": null,
+  "requestsMade": 0,
+  "checks": [
+    {
+      "id": "private-note-policy",
+      "category": "authorization",
+      "status": "issue-found",
+      "reason": "The deliberately vulnerable Supabase source fixture grants private-note reads to both ordinary and anonymous callers. This is source evidence only.",
+      "observations": [],
+      "findings": [
+        {
+          "id": "source-private-notes",
+          "title": "Unconditional policy permits reads of owner-only notes",
+          "severity": "high",
+          "evidenceStatus": "source-supported",
+          "impact": "Given the fixture\u2019s declared private-note model, the SELECT grant and unconditional RLS policy would expose those records to anon and authenticated roles if deployed as shown. No deployment was inspected.",
+          "reproduction": [
+            "Inspect the alternative vulnerable SQL fixture and its SELECT grants.",
+            "Compare the public_read policy with the owner_read policy in the secure counterpart.",
+            "Proposed runtime test, not executed against Supabase: seed a synthetic note, verify its owner can read it, and assert an unrelated user and anonymous caller cannot."
+          ],
+          "evidence": [
+            "vulnerable.sql grants SELECT to anon and authenticated and uses a true SELECT predicate.",
+            "The Flutter and React Native source snippets query the same conceptual notes endpoint; client filters cannot replace the database policy."
+          ],
+          "codeLocations": [
+            "tests/fixtures/backends/supabase/vulnerable.sql:4",
+            "tests/fixtures/backends/supabase/vulnerable.sql:5"
+          ],
+          "remediation": "For the declared owner-only model, restrict SELECT to the owner identity as illustrated by the secure counterpart; review all other applicable policies and grants.",
+          "retest": "Run ordinary-user and anonymous access tests in an isolated Supabase project, including a successful owner baseline. Not executed in this source review."
+        }
+      ]
+    },
+    {
+      "id": "secure-policy-counterpart",
+      "category": "authorization",
+      "status": "no-issue-observed",
+      "reason": "The secure SQL fixture restricts SELECT to authenticated owners under its stated model. This is a narrow source review; no deployed state or alternate access paths were verified.",
+      "observations": [],
+      "findings": []
+    },
+    {
+      "id": "live-backend-runtime",
+      "category": "runtime",
+      "status": "blocked",
+      "reason": "No actual Supabase or Firebase service is part of this source-only example. The generic HTTP demo is a separate result.",
+      "observations": [],
+      "findings": []
+    },
+    {
+      "id": "native-device",
+      "category": "device",
+      "status": "skipped",
+      "reason": "Mobile fixtures are source snippets, not buildable apps or signed binaries.",
+      "observations": [],
+      "findings": []
+    }
+  ],
+  "limitations": [
+    "Illustrative assessment of deliberately vulnerable and secure source fixtures, not a real customer app.",
+    "No commit is recorded because this source package has not been initialized as a Git repository.",
+    "No real database, mobile build, device, or deployed configuration was tested."
+  ],
+  "cleanup": "No target requests or remote data changes were made."
+}

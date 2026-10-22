@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "toolVersion": "0.1.0",
+  "runId": "62b98e8b-d7c8-492d-9ddb-16360265183e",
+  "startedAt": "2026-10-22T18:13:27.431Z",
+  "finishedAt": "2026-10-22T18:13:27.635Z",
+  "mode": "local",
+  "targetOrigin": "http://127.0.0.1:65317",
+  "commit": null,
+  "planSha256": "f91c65597e6c98d5e7ac143c1196718ecc5820b8153c9865c3c55970f45fedbf",
+  "requestsMade": 5,
+  "checks": [
+    {
+      "id": "owner-note",
+      "category": "authorization-read",
+      "status": "no-issue-observed",
+      "reason": "The owner baseline succeeded and both unauthorized attempts were denied or returned an empty collection; only this fixture and operation were tested",
+      "observations": [
+        {
+          "actor": "owner",
+          "status": 200,
+          "markerMatched": true
+        },
+        {
+          "actor": "other",
+          "status": 403,
+          "markerMatched": false
+        },
+        {
+          "actor": "anonymous",
+          "status": 401,
+          "markerMatched": false
+        }
+      ],
+      "findings": []
+    }
+  ],
+  "limitations": [
+    "Only configured owner-only JSON read operations were probed; this is not a complete security assessment.",
+    "The operator must verify account roles, fixture ownership, target ownership, and environment isolation. Configuration cannot prove these facts.",
+    "HTTP denials and an empty collection are narrow observations, not proof that no other data leaked.",
+    "No app binary, device behavior, write authorization, subscriptions, rate-limit strength, or deployed/local parity was automatically tested.",
+    "Response bodies are never persisted. Keep the original plan and test fixture available for reproduction."
+  ],
+  "cleanup": "The runner created no remote resources. Any separately seeded fixtures must be cleaned up using their recorded IDs."
+}

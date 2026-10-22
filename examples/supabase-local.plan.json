@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "environment": "local",
+  "target": "http://127.0.0.1:54321",
+  "scope": {
+    "authorized": true,
+    "isolatedTestData": true,
+    "readOnlyEndpoints": true
+  },
+  "limits": {
+    "maxRequests": 5,
+    "timeoutMs": 3000,
+    "delayMs": 150,
+    "maxResponseBytes": 65536
+  },
+  "accounts": {
+    "ownerTokenEnv": "BAL_OWNER_TOKEN",
+    "otherTokenEnv": "BAL_OTHER_TOKEN"
+  },
+  "identity": {
+    "path": "/auth/v1/user",
+    "subjectPointer": "/id"
+  },
+  "probes": [
+    {
+      "id": "private-note-read",
+      "kind": "authorization-read",
+      "path": "/rest/v1/bal_notes?id=eq.bal-synthetic-note&select=body",
+      "markerPointer": "/0/body",
+      "markerEnv": "BAL_FIXTURE_MARKER",
+      "privateFixture": true
+    }
+  ],
+  "publicApiKeyEnv": "BAL_PUBLIC_API_KEY"
+}

@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BreakALeg plan",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "environment": {
+      "enum": [
+        "local",
+        "staging"
+      ]
+    },
+    "target": {
+      "type": "string",
+      "format": "uri"
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "authorized": {
+          "const": true
+        },
+        "isolatedTestData": {
+          "const": true
+        },
+        "readOnlyEndpoints": {
+          "const": true
+        }
+      },
+      "required": [
+        "authorized",
+        "isolatedTestData",
+        "readOnlyEndpoints"
+      ]
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maxRequests": {
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 100
+        },
+        "timeoutMs": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 15000
+        },
+        "delayMs": {
+          "type": "integer",
+          "minimum": 50,
+          "maximum": 5000
+        },
+        "maxResponseBytes": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 1048576
+        }
+      },
+      "required": [
+        "maxRequests",
+        "timeoutMs",
+        "delayMs",
+        "maxResponseBytes"
+      ]
+    },
+    "accounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ownerTokenEnv": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]{0,99}$"
+        },
+        "otherTokenEnv": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]{0,99}$"
+        }
+      },
+      "required": [
+        "ownerTokenEnv",
+        "otherTokenEnv"
+      ]
+    },
+    "publicApiKeyEnv": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]{0,99}$"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "pattern": "^/(?!/)",
+          "maxLength": 2048
+        },
+        "subjectPointer": {
+          "type": "string",
+          "pattern": "^/",
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "path",
+        "subjectPointer"
+      ]
+    },
+    "probes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{0,63}$"
+          },
+          "kind": {
+            "const": "authorization-read"
+          },
+          "path": {
+            "type": "string",
+            "pattern": "^/(?!/)",
+            "maxLength": 2048
+          },
+          "markerPointer": {
+            "type": "string",
+            "pattern": "^/",
+            "maxLength": 256
+          },
+          "markerEnv": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]{0,99}$"
+          },
+          "privateFixture": {
+            "const": true
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "path",
+          "markerPointer",
+          "markerEnv",
+          "privateFixture"
+        ]
+      },
+      "minItems": 1,
+      "maxItems": 25
+    }
+  },
+  "required": [
+    "version",
+    "environment",
+    "target",
+    "scope",
+    "limits",
+    "accounts",
+    "identity",
+    "probes"
+  ],
+  "description": "Runtime validation additionally enforces origin/environment rules, relative paths, pointer escaping, distinct env references, unique probe IDs, and sufficient request budget."
+}
