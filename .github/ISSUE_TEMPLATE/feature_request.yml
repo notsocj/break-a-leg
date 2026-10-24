@@ -1,0 +1,22 @@
+name: Feature request
+description: Suggest a focused improvement to the skill or helper.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or workflow
+      description: Describe what a founder cannot do today. Use synthetic examples; do not attach private app reports.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior and alternatives
+      description: Explain the intended outcome, relevant stack, and whether this needs guidance or executable runtime support.
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: How could we verify it?
+      description: Suggest a small synthetic scenario and expected behavior, if available.

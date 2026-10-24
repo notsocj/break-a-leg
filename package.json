@@ -17,7 +17,9 @@
     "validate": "node runner/cli.ts validate",
     "run": "node runner/cli.ts run",
     "typecheck": "tsc --noEmit",
-    "test:installer": "python3 -m unittest discover -s tests -p \"test_*.py\""
+    "test:installer": "python3 -m unittest discover -s tests -p \"test_installer.py\"",
+    "test:python": "python3 -m unittest discover -s tests -p \"test_*.py\"",
+    "check:docs": "python3 scripts/check_docs.py"
   },
   "devDependencies": {
     "@types/node": "24.0.0",

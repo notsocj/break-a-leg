@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Add first-review, runner, report/troubleshooting, architecture, and maintainer guides with a README navigation index.
+- Check repository-local Markdown file links in CI and add contributor issue/PR templates.
+- Package only Git-tracked files, reject symlink paths and unsafe destinations, and clean up partial archives on failure. Add behavioral packaging tests; private untracked review files are excluded even outside the usual report directory.
+- These repository maintenance changes follow v0.1.2; the published tag and helper capabilities are unchanged.
+
 ## 0.1.2 — 2026-10-24
 
 - Add a local-data guide for app-lock loading/error states, authentication recovery, navigator overlays across relock, backup validation, and deletion across separate stores.

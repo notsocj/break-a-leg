@@ -10,13 +10,14 @@ Use Node 22.18+ (24 LTS recommended). Runtime helpers use native type stripping 
 npm ci --ignore-scripts
 npm run typecheck
 npm run bundle
+npm run check:docs
 npm test
-npm run test:installer
+npm run test:python
 npm run check:bundle
 npm run demo
 ```
 
-The source of truth is `runner/` and `schemas/`. Do not edit their bundled copies under `skills/break-a-leg/`. `scripts/bundle.mjs` updates the installable skill and removes obsolete generated files; `--check` detects drift and unexpected entries. Test behavior, not wording. `npm run typecheck` performs strict static checking separately from Node's runtime stripping. The installed skill needs none of these development packages. Python 3 is required only for the installer and its tests.
+The source of truth is `runner/` and `schemas/`. Do not edit their bundled copies under `skills/break-a-leg/`. `scripts/bundle.mjs` updates the installable skill and removes obsolete generated files; `--check` detects drift and unexpected entries. Test behavior, not wording. `npm run typecheck` performs strict static checking separately from Node's runtime stripping. The installed skill needs none of these development packages. Python 3.8+ is used for installation, packaging, documentation checks, and Python tests. See [architecture](docs/architecture.md) for module responsibilities.
 
 ## Add a mobile or backend guide
 
@@ -42,4 +43,4 @@ Agent evaluations are separate from the runner's unit/integration tests. Record 
 
 ## Before public release
 
-Keep the private reporting channel in SECURITY.md current. Check branding/package availability before creating a registry package. Document new external dependencies and their licenses. Do not upload private assessment outputs. Update package metadata and `runner/version.ts` together; the tests detect version drift. `python3 scripts/package.py --out /path/to/new-output-folder` creates versioned source and standalone-skill ZIPs without development dependencies or local reports.
+Keep the private reporting channel in SECURITY.md current. Check branding/package availability before creating a registry package. Document new external dependencies and their licenses. Do not upload private assessment outputs. Update package metadata and `runner/version.ts` together; the tests detect version drift. The [maintainer guide](docs/maintaining.md) covers validation, Git-tracked archive packaging, immutable tags, and publication. Keep archive output outside the repository and inspect tracked files before distributing them.

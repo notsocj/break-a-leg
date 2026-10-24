@@ -8,6 +8,20 @@ BreakALeg is an open-source agent skill for mobile founders. It reviews an app a
 
 Version **0.1.2 — early release**. MIT licensed. No telemetry, hosted account, or separate model API key is required by this package. Your coding agent's own model connection and data handling still apply.
 
+## Start here
+
+| Goal | Guide |
+| --- | --- |
+| Install and run a first review, with or without staging | [Getting started](docs/getting-started.md) |
+| Try the demo or configure a bounded API check | [Runner walkthrough](docs/runner-walkthrough.md) |
+| Understand findings, incomplete coverage, or an error | [Reports and troubleshooting](docs/reports-and-troubleshooting.md) |
+| Understand supported checks and their limits | [Coverage contract](skills/break-a-leg/references/coverage.md) |
+| Understand the implementation or add a capability | [Architecture](docs/architecture.md) · [Contributing](CONTRIBUTING.md) |
+| Validate, package, and publish a version | [Maintainer guide](docs/maintaining.md) |
+| Inspect validation and version history | [Verification](VERIFICATION.md) · [Changelog](CHANGELOG.md) |
+
+An agent performs the review; `discover` only identifies candidate stacks. The helper does not independently audit your app. Start with the first guide if you are new to agent skills.
+
 ## What you get
 
 - Stack-specific review guides for Flutter, React Native/Expo, Swift/iOS, and Kotlin/Android, plus generic guidance for other mobile stacks.
@@ -44,6 +58,7 @@ For another agent supporting the same skill-folder format, copy the folder into 
 ## Requirements
 
 - Source review: an agent that can inspect your repository. Mobile SDKs and staging are optional.
+- Installer: Python 3.8+; manual copying is also supported. The clone workflow needs Git. Repository maintenance uses Python for docs, packaging, and tests.
 - Helper runtime: **Node 22.18+**, preferably Node 24 LTS. No `npm install` or compile step is needed. Node runs the supported TypeScript syntax natively; it does not type-check it.
 - Active checks: explicitly scoped local/staging target, two ordinary test sessions, a trusted identity endpoint, and an owner-only synthetic fixture. Supply secrets through environment references, not plan files.
 
@@ -65,7 +80,7 @@ From the repository root:
 
 ```sh
 npm test
-npm run test:installer
+npm run test:python
 npm run demo
 ```
 
@@ -96,11 +111,14 @@ runner/             Canonical TypeScript runner source
 schemas/            Canonical plan/report JSON schemas
 scripts/            Bundling and no-overwrite installer
 examples/           Plans and generated synthetic example reports
+docs/               User walkthroughs, troubleshooting, and maintainer guides
 tests/              Behavioral tests and vulnerable/secure fixtures
 evals/              Manual skill reasoning cases and separate grading rubrics
 ```
 
 After editing runner source or schemas, run `npm run bundle`. Generated copies inside the skill are included so skill installation needs no build. `npm run check:bundle` checks for drift. Development-only type checking uses `npm ci --ignore-scripts` followed by `npm run typecheck`; the installed skill needs no packages. Contributor instructions are in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+`npm run check:docs` verifies local Markdown file links. `npm run test:python` covers installation and archive packaging; `npm run test:installer` runs only the installer cases. The maintainer packager selects Git-tracked files rather than arbitrary local files.
 
 The [local-first evaluation](evals/local-first/request.md) checks the agent's reasoning on a fictional source fixture. It is a manual evaluation, not an executable scanner test; provide its rubric only after the agent produces an assessment.
 

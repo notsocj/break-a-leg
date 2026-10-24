@@ -1,6 +1,23 @@
-# BreakALeg v0.1.2 verification
+# Verification
 
-Verified locally on 2026-10-24 using Node 24.18.0 on macOS. This describes the local v0.1.2 candidate; consult GitHub for published versions and CI results.
+## Current repository maintenance checks
+
+Verified locally on 2026-10-24 using Node 24.18.0 on macOS. Changes after the v0.1.2 tag are listed under Unreleased in the changelog.
+
+| Check | Result |
+| --- | --- |
+| Runner, discovery, and standalone CLI tests | 36 passed |
+| Python installer and archive packaging tests | 13 passed (6 installer, 7 packaging) |
+| Strict TypeScript and bundled-source parity | Passed |
+| Local Markdown file destinations | Passed; remote URLs and fragment anchors are not checked |
+| Documented synthetic demo | Expected vulnerable and secure outcomes; loopback only |
+| Archive and installation smoke test | Source guide files included; extracted source installs; standalone skill runs; all three plan examples validate offline |
+
+Packaging tests cover exclusion of untracked reports and known local/credential artifacts, standalone-skill contents, existing output preservation, symlink rejection, repository/output boundaries, safe version filenames, and failed-write cleanup. The packager is not a general secret scanner; review tracked content before publication.
+
+## Published v0.1.2 checks
+
+The v0.1.2 sources were verified on 2026-10-24. Both its branch and tag workflows passed on Node 22 and 24; see the [tag workflow](https://github.com/notsocj/break-a-leg/actions/runs/40074389910).
 
 | Check | Result |
 | --- | --- |

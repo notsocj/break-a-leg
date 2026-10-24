@@ -19,5 +19,6 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npm run typecheck
       - run: npm run check:bundle
+      - run: npm run check:docs
       - run: npm test
-      - run: npm run test:installer
+      - run: npm run test:python
