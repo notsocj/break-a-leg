@@ -13,7 +13,7 @@ You can start with a repository alone. Staging, test accounts, a mobile simulato
 | App and backend source | Review both repositories | Trace a mobile action to server/database enforcement |
 | An isolated local backend or emulator | Review, then local tests | Reproduce selected behavior with synthetic users and data |
 | A known isolated staging system | Review, then scoped staging tests | Verify selected read-access boundaries against that environment |
-| Production only | Review mode | Useful source findings; v0.1 does not actively test production |
+| Production only | Review mode | Useful source findings; BreakALeg does not actively test production |
 
 Flutter, React Native/Expo, Swift/iOS, and Kotlin/Android have dedicated review guides. Other mobile stacks use generic guidance. Supabase, Firebase, and custom APIs have backend guides. This means guided review support, not automatic end-to-end testing of every stack.
 
@@ -29,7 +29,13 @@ cd break-a-leg
 python3 scripts/install.py
 ```
 
-This installs the entire `skills/break-a-leg` directory at `$CODEX_HOME/skills/break-a-leg`, or `~/.codex/skills/break-a-leg` if `CODEX_HOME` is unset. It refuses an existing installation unless you explicitly use `--update`.
+This installs the entire `skills/break-a-leg` directory for Codex at `$CODEX_HOME/skills/break-a-leg`, or `~/.codex/skills/break-a-leg` if `CODEX_HOME` is unset. It refuses an existing installation unless you explicitly use `--update`.
+
+For Claude Code, install to your personal skills directory (`~/.claude/skills/break-a-leg`):
+
+```sh
+python3 scripts/install.py --agent claude
+```
 
 For a custom destination:
 
@@ -37,9 +43,9 @@ For a custom destination:
 python3 scripts/install.py --skills-dir /path/to/skills
 ```
 
-If Python is unavailable, copy the entire `skills/break-a-leg` directory to your agent's skill directory. Copying only `SKILL.md` omits the references and helper. Codex is the documented installation target; other agents' discovery conventions have not been verified.
+If Python is unavailable, copy the entire `skills/break-a-leg` directory to your agent's skill directory. Copying only `SKILL.md` omits the references and helper. Codex and Claude Code are the documented installation targets; other agents' discovery conventions have not been verified.
 
-Open a new Codex chat in your app repository if the installed skill is not visible. These shell examples use POSIX-style paths; adjust your Python executable and paths for your host. Local validation uses macOS and CI uses Linux.
+Open a new Codex or Claude Code session in your app repository if the installed skill is not visible. In Claude Code, invoke it as `/break-a-leg` or ask for a pre-launch security review; in Codex, use `$break-a-leg`. These shell examples use POSIX-style paths; adjust your Python executable and paths for your host. Local validation uses macOS and CI uses Linux.
 
 ## 3. Run your first review
 
@@ -55,7 +61,7 @@ The expected workflow is:
 
 1. Read project instructions and identify app/backend roots.
 2. Map sensitive implemented flows and select review/local/staging mode.
-3. Trace concrete hypotheses through their enforcement points.
+3. Check the high-yield places first (database rules, client keys, entitlements, server endpoints, sign-in), then trace concrete hypotheses through their enforcement points.
 4. Run bounded synthetic tests where tools and scope permit.
 5. Deliver findings, evidence levels, coverage gaps, and cleanup status.
 
@@ -86,7 +92,7 @@ python3 scripts/install.py --update
 
 The previous installation is preserved under `skill-backups/` beside the skills directory, including local modifications. Read the printed backup path. Inspect local changes before pulling; do not discard them just to update.
 
-For the tagged v0.1.2 snapshot, make a separate checkout:
+For a tagged snapshot such as v0.1.2, make a separate checkout:
 
 ```sh
 git clone --branch v0.1.2 --depth 1 https://github.com/notsocj/break-a-leg.git break-a-leg-v0.1.2

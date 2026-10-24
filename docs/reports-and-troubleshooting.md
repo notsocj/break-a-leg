@@ -34,7 +34,7 @@ An absent backend in a local-only app can be not applicable. An existing backend
 | `1` | Findings with complete configured coverage |
 | `2` | Error, blocked, or incomplete coverage; takes precedence over findings |
 
-`discover` and `validate` returning 0 only mean those offline commands completed. The synthetic demo returns 0 when both its intentionally vulnerable and secure fixtures match their expected behavior.
+`discover` and `validate` returning 0 only mean those offline commands completed. `rls-audit` and `secrets` exit 1 when they report leads and 0 when they report none; neither result proves the app is safe. The synthetic demo returns 0 when both its intentionally vulnerable and secure fixtures match their expected behavior.
 
 See the [vulnerable example](../examples/demo-reports/vulnerable.md), [secure counterpart](../examples/demo-reports/secure.md), and [source-review example](../examples/source-review.md). These are public synthetic fixtures, not customer assessments. Preserve original helper reports and write the agent's consolidated analysis separately.
 
@@ -46,6 +46,9 @@ See the [vulnerable example](../examples/demo-reports/vulnerable.md), [secure co
 | Installer says the skill exists | Inspect the installed copy. Use `python3 scripts/install.py --update` for an intentional replacement with backup. |
 | Node reports an unknown `.ts` extension or unsupported syntax | Run `node --version`; use Node 22.18+ or 24 LTS. Source review can continue without the helper. |
 | `discover` reports no stack or truncated results | Select the actual app root and inspect manifests manually. Hidden files, symlinks, and common dependency/build directories are skipped. |
+| `rls-audit` reports a lead you consider intended | Leads are not findings. Public data may correctly allow every row. Record the intended access rule in the review and move on. |
+| `secrets` reports a key in `.env` | Check whether the file is committed or bundled into the app. A server-only, ignored `.env` is not client exposure; a committed one still needs rotation. |
+| A cookie-session API cannot use bearer tokens | Set `accounts.cookieName` in the plan; the runner then sends the session as that cookie. |
 | `validate` succeeds but `run` is blocked | Structural validation cannot prove credentials, distinct ordinary roles, fixture ownership, or response semantics. Inspect the report reason. |
 | Missing credentials | Supply the exact environment variable names from the plan to the process. `.env` files are not loaded automatically. Never paste token values into an issue. |
 | Identity preflight fails | Verify the trusted endpoint and pointer, session validity, and two distinct ordinary users. Do not substitute an admin token. |

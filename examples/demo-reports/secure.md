@@ -1,16 +1,20 @@
 # BreakALeg security rehearsal
 
-Run: 32451b35-2907-4da2-be9f-6f3e54a1f71f · Version: 0\.1\.1
+Run: bd149262-1c19-405a-8fdc-c8db960d36c8 · Version: 0\.2\.0
 
-Environment: local · Target: http://127\.0\.0\.1:49861
+Environment: local · Target: http://127\.0\.0\.1:37293
 
-Started: 2026-10-22T18:24:36\.814Z · Commit: not recorded
+Started: 2026-10-24T19:17:48\.668Z · Commit: not recorded
 
 Requests: 5 · Findings: 0 · Incomplete checks: 0
 
 Evidence: 0 runtime reproduced; 0 source supported; 0 need verification.
 
 This report covers only the listed fixtures and checks. No findings does not establish that the application is secure.
+
+## Launch priority
+
+Nothing to fix from the checks that ran.
 
 ## Check coverage
 

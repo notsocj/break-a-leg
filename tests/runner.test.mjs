@@ -160,3 +160,93 @@ test('a confirmed leak does not hide another actor\'s inconclusive response', as
   assert.equal(r.checks[0].complete, false);
   assert.match(renderReport(r), /Incomplete checks: 1/);
 });
+test('a private marker relocated within an unauthorized response is still a finding', async t => {
+  // The other user's list contains their own row first and the owner's private row second,
+  // so the marker is at /1/body rather than the configured pointer.
+  const f = await fixture(t, ({ req, actor, send }) => {
+    if (req.url === '/me') return false;
+    if (actor === 'owner') send(200, { body: testEnv.BAL_FIXTURE_MARKER });
+    else if (actor === 'other') send(200, [{ body: 'their own note' }, { body: testEnv.BAL_FIXTURE_MARKER }]);
+    else send(401, { error: 'denied' });
+    return true;
+  });
+  const r = await runPlan(planFor(f.target), { env: testEnv });
+  assert.equal(r.checks[0].status, 'issue-found');
+  assert.equal(r.checks[0].complete, true);
+  assert.deepEqual(r.checks[0].findings.map(x => x.id), ['owner-note-other']);
+});
+test('deep marker search requires exact equality, not a substring', async t => {
+  const f = await fixture(t, ({ req, actor, send }) => {
+    if (req.url === '/me') return false;
+    if (actor === 'owner') send(200, { body: testEnv.BAL_FIXTURE_MARKER });
+    else send(200, { echo: `prefix-${testEnv.BAL_FIXTURE_MARKER}` });
+    return true;
+  });
+  const r = await runPlan(planFor(f.target), { env: testEnv });
+  assert.equal(r.checks[0].findings.length, 0);
+  assert.equal(r.checks[0].status, 'blocked');
+});
+test('admin custom claims are rejected as privileged before any request', async t => {
+  const f = await fixture(t, 'secure');
+  for (const claims of [{ admin: true }, { role: 'admin' }, { is_admin: true }]) {
+    const token = `header.${Buffer.from(JSON.stringify(claims)).toString('base64url')}.signature`;
+    const r = await runPlan(planFor(f.target), { env: { ...testEnv, BAL_OTHER_TOKEN: token } });
+    assert.equal(r.requestsMade, 0);
+    assert.match(r.checks[0].reason, /Privileged/);
+  }
+  assert.equal(f.seen.length, 0);
+});
+test('cookie sessions are sent as the named cookie and never as a bearer header', async t => {
+  const cookieActor = req => {
+    const cookie = req.headers.cookie ?? '';
+    if (cookie === `session=${testEnv.BAL_OWNER_TOKEN}`) return 'owner';
+    if (cookie === `session=${testEnv.BAL_OTHER_TOKEN}`) return 'other';
+    return 'anonymous';
+  };
+  const headers = [];
+  const f = await fixture(t, ({ req, send }) => {
+    headers.push({ authorization: req.headers.authorization, cookie: req.headers.cookie });
+    const actor = cookieActor(req);
+    if (req.url === '/me') send(actor === 'anonymous' ? 401 : 200, { id: actor });
+    else send(200, { body: testEnv.BAL_FIXTURE_MARKER }); // vulnerable: everyone reads the note
+    return true;
+  });
+  const p = planFor(f.target); p.accounts.cookieName = 'session';
+  const r = await runPlan(p, { env: testEnv });
+  assert.equal(r.checks[0].status, 'issue-found');
+  assert.equal(r.checks[0].findings.length, 2);
+  assert.ok(headers.every(h => h.authorization === undefined));
+  assert.equal(headers.filter(h => h.cookie).length, 4); // two identity checks, owner, other
+});
+test('cookie plans reject unsafe cookie names and separator characters in values', async t => {
+  for (const name of ['bad name', 'a;b', 'x=y', '']) {
+    const p = planFor('http://127.0.0.1:1234'); p.accounts.cookieName = name; assert.throws(() => parsePlan(p));
+  }
+  const f = await fixture(t, 'secure');
+  const p = planFor(f.target); p.accounts.cookieName = 'session';
+  const r = await runPlan(p, { env: { ...testEnv, BAL_OWNER_TOKEN: 'abc;injected=1' } });
+  assert.equal(r.requestsMade, 0); assert.equal(f.seen.length, 0);
+});
+test('localhost reaches a server bound only to IPv6 loopback', async t => {
+  const http = await import('node:http');
+  const server = http.createServer((req, res) => {
+    const auth = req.headers.authorization;
+    const actor = auth === `Bearer ${testEnv.BAL_OWNER_TOKEN}` ? 'owner' : auth === `Bearer ${testEnv.BAL_OTHER_TOKEN}` ? 'other' : 'anonymous';
+    res.writeHead(req.url === '/me' ? (actor === 'anonymous' ? 401 : 200) : actor === 'owner' ? 200 : 403, { 'content-type': 'application/json' });
+    res.end(JSON.stringify(req.url === '/me' ? { id: actor } : actor === 'owner' ? { body: testEnv.BAL_FIXTURE_MARKER } : { error: 'denied' }));
+  });
+  try { await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '::1', resolve); }); }
+  catch { t.skip('IPv6 loopback is unavailable on this host'); return; }
+  t.after(() => new Promise(resolve => { server.closeAllConnections(); server.close(resolve); }));
+  const r = await runPlan(planFor(`http://localhost:${server.address().port}`), { env: testEnv });
+  assert.equal(r.checks[0].status, 'no-issue-observed');
+});
+test('report opens with a founder-facing launch priority that never hides incomplete checks', async t => {
+  const leaky = await fixture(t, 'vulnerable');
+  const md = renderReport(await runPlan(planFor(leaky.target), { env: testEnv }));
+  assert.match(md, /## Launch priority\n\n\*\*Fix before launch\*\*\n\n- Private fixture readable by another user \(high, runtime-reproduced\)/);
+  assert.ok(md.indexOf('## Launch priority') < md.indexOf('## Check coverage'));
+  const blocked = await fixture(t, 'missing-fixture');
+  const blockedMd = renderReport(await runPlan(planFor(blocked.target), { env: testEnv }));
+  assert.match(blockedMd, /Nothing to fix from the checks that ran\.\n\n\*\*Not fully checked:\*\* owner-note\./);
+});

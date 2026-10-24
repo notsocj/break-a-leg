@@ -1,0 +1,21 @@
+FICTIONAL RECIPE APP — CONFIGURATION AND PSEUDOCODE, NOT EXECUTABLE
+
+Product contract:
+- Recipes are public and readable by anyone, signed in or not.
+- Signed-in users can save favorites; favorites are private.
+- Dark mode and recipe card themes are a free, local-only cosmetic setting.
+- There is no paid tier and no AI feature.
+
+android/app/google-services.json: standard Firebase client config with a client apiKey field.
+lib/main.dart: Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform)
+
+firestore.rules:
+  match /recipes/{id} { allow read: if true; allow write: if false; }
+  match /users/{uid}/favorites/{id} { allow read, write: if request.auth != null && request.auth.uid == uid; }
+
+lib/settings.dart:
+  prefs.setBool('darkMode', value)        // SharedPreferences, not encrypted
+  prefs.setString('cardTheme', value)
+
+android/app/src/debug/res/xml/network_security_config.xml: cleartext allowed for 10.0.2.2 (debug source set only)
+android/app/src/main/AndroidManifest.xml: MainActivity exported (launcher), no other exported components

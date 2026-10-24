@@ -18,7 +18,7 @@ git diff --check
 
 The HTTP suite and demo bind loopback only. The Python suite covers installer and release packaging behavior. `npm run test:installer` remains available for only the installer tests. Documentation checking verifies local file destinations, not remote website availability or Markdown fragment anchors.
 
-If guidance changes a security decision, use a relevant [manual evaluation](../evals/local-first/request.md). Give the evaluator the request and raw fixture, withhold the rubric, and record the evaluator/model and limitations. Do not label an unevaluated scenario as passed.
+If guidance changes a security decision, use a relevant manual evaluation: [local-first](../evals/local-first/request.md), [Supabase backend](../evals/supabase-rls/request.md), or [false positives](../evals/false-positives/request.md). Give the evaluator the request and raw fixture, withhold the rubric, and record the evaluator/model and limitations. Do not label an unevaluated scenario as passed.
 
 Keep private app reports, tokens, and source copies outside this public repository. Synthetic examples should be self-contained and omit customer identifiers or copied private evidence.
 

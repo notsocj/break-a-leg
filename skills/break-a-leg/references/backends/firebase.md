@@ -20,3 +20,12 @@ Minimal finite test procedure using the project's installed test SDK:
 Use actual `assertSucceeds`/`assertFails`-style assertions supported by the installed rules-test package. Never use an Admin SDK as the probed identity. Inspect the failing error: an unavailable emulator or invalid query is not proof that rules denied access.
 
 The bundled generic HTTP runner is not a Firebase SDK/rules adapter. If the project lacks emulator tooling, continue source review and label proposed rules tests unexecuted. Do not pretend that the presence of this guide establishes Firebase integration coverage.
+
+## High-yield patterns
+
+- `allow read, write: if true;` or a broad `match /{document=**}` that overrides narrower rules (rules grant access if any match allows it).
+- Rules that check only `request.auth != null`: every signed-in user, including anonymous users, can read or write every document in that path.
+- Owner checks on read but not on create/update, so a user can write a document with someone else's `uid`, or change `ownerId`, `role`, `credits`, or `isPremium` fields. Look for missing `request.resource.data` field allowlists.
+- Storage rules that allow any authenticated user under a shared path instead of `request.auth.uid == userId`.
+- Callable/HTTP Cloud Functions that use the Admin SDK without checking `context.auth` or a verified ID token, or that trust a client-supplied user ID.
+- Service-account JSON (a `private_key` field) in the repository or app bundle (run `secrets`). Firebase web/client config is public by design.

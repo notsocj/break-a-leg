@@ -92,3 +92,16 @@ test('bundler rejects stale generated files and removes them when rebuilding', a
   await assert.rejects(readFile(obsolete), { code: 'ENOENT' });
   assert.equal((await node(['scripts/bundle.mjs', '--check'], { cwd: root })).code, 0);
 });
+test('copied skill runs static helpers offline with lead-based exit codes', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'bal-static-cli-')); t.after(() => rm(root, { recursive: true, force: true }));
+  const skill = join(root, 'skill'); await cp('skills/break-a-leg', skill, { recursive: true });
+  const cli = join(skill, 'scripts', 'break-a-leg.mjs');
+  const vulnerable = await node([cli, 'rls-audit', resolve('tests/fixtures/rls/vulnerable')], { cwd: root });
+  assert.equal(vulnerable.code, 1, vulnerable.stderr); assert.ok(JSON.parse(vulnerable.stdout).leadCount > 0);
+  const secure = await node([cli, 'rls-audit', resolve('tests/fixtures/rls/secure')], { cwd: root });
+  assert.equal(secure.code, 0, secure.stderr);
+  const secrets = await node([cli, 'secrets', resolve('tests/fixtures/rls/secure')], { cwd: root });
+  assert.equal(secrets.code, 0, secrets.stderr); assert.equal(JSON.parse(secrets.stdout).hitCount, 0);
+  const extra = await node([cli, 'secrets', root, 'extra'], { cwd: root });
+  assert.equal(extra.code, 2);
+});

@@ -19,6 +19,14 @@ class InstallerTests(unittest.TestCase):
         (self.source / 'SKILL.md').write_text('new skill')
         self.dest = self.root / 'config' / 'skills' / 'break-a-leg'
 
+    def test_agent_selects_its_personal_skills_directory(self):
+        with patch.object(module.Path, 'home', return_value=self.root):
+            with patch.dict(module.os.environ, {}, clear=True):
+                self.assertEqual(module.default_skills_dir('claude'), self.root / '.claude' / 'skills')
+                self.assertEqual(module.default_skills_dir('codex'), self.root / '.codex' / 'skills')
+            with patch.dict(module.os.environ, {'CODEX_HOME': str(self.root / 'codex-home')}, clear=True):
+                self.assertEqual(module.default_skills_dir('codex'), self.root / 'codex-home' / 'skills')
+
     def test_fresh_install_and_no_implicit_overwrite(self):
         self.assertIsNone(module.install(self.source, self.dest))
         with self.assertRaises(ValueError):

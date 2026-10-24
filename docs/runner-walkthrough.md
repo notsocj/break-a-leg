@@ -28,9 +28,13 @@ From the BreakALeg checkout:
 ```sh
 node skills/break-a-leg/scripts/break-a-leg.mjs --version
 node skills/break-a-leg/scripts/break-a-leg.mjs discover /path/to/your-app
+node skills/break-a-leg/scripts/break-a-leg.mjs secrets /path/to/your-app
+node skills/break-a-leg/scripts/break-a-leg.mjs rls-audit /path/to/your-app
 ```
 
-Discovery returns candidate stacks and file paths, plus truncation and unreadable-entry information. It does not identify vulnerabilities, verify a runnable app, read all source, or contact endpoints. Flutter's generated Android/iOS directories can produce multiple stack signals for one app.
+`secrets` lists likely credentials by type, file, line, and an exposure hint such as `client-bundled-variable`, without ever printing the value. Supabase anon/publishable keys and Firebase client keys are counted as public, not reported. `rls-audit` looks for `supabase/` folders, replays their migrations and `config.toml`, and lists leads such as tables without RLS, `using (true)` policies, views that bypass RLS, public buckets, and Edge Functions without JWT verification. Both print JSON and exit 1 when they have something for you to review. Leads are places to look, not confirmed vulnerabilities.
+
+Discovery returns candidate stacks and file paths, `suggestedChecks` (guides worth reading because of payment, AI, local-storage, or sign-in dependencies), plus truncation and unreadable-entry information. It does not identify vulnerabilities, verify a runnable app, read all source, or contact endpoints. Flutter's generated Android/iOS directories can produce multiple stack signals for one app.
 
 ## Prepare a real local/staging read test
 

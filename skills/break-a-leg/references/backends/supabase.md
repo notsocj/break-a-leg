@@ -13,3 +13,16 @@ The bundled runner can use `/auth/v1/user` with `/id` for identity, a publishabl
 For writes, use project tests to attempt ownership transfer, cross-user updates, and prohibited role fields in a disposable backend. Record both the rejection and unchanged stored state. The bundled runner does not perform writes.
 
 Storage: examine bucket visibility and object policies separately. A public bucket or intentionally shareable URL is only a finding when it violates the intended privacy rule. Never modify a production policy to make a test easier.
+
+## High-yield patterns
+
+Run `rls-audit` when local migrations exist; it lists these leads with file and line. Confirm each against the intended access rule before reporting it.
+
+- A table in an exposed schema (`public` by default) with no `enable row level security` after all migrations. Supabase grants table access to `anon` and `authenticated`, so the Data API reaches every row.
+- `using (true)` or `with check (true)` on rows that are private, per-user, or per-organization. Policies granted `to authenticated` also cover anonymous sign-ins when they are enabled.
+- UPDATE policies without a `with check` that keeps `owner_id`, `role`, `credits`, or plan columns unchanged, letting users reassign rows or grant themselves privileges.
+- Views without `security_invoker = true`, and materialized views, in exposed schemas: they read tables as their owner and bypass RLS.
+- `security definer` functions in exposed schemas: callable through `/rest/v1/rpc` unless EXECUTE is revoked, and unsafe without a fixed `search_path`. Check that each verifies `auth.uid()` itself.
+- Public storage buckets holding private files, and `storage.objects` policies that check only `bucket_id`.
+- Edge Functions with `verify_jwt = false` that do not verify a webhook signature, or that read a user ID from the request body instead of the verified JWT. Functions using the service-role client must enforce authorization themselves.
+- A service-role key anywhere in client code or `EXPO_PUBLIC_`/`NEXT_PUBLIC_` variables (run `secrets`).

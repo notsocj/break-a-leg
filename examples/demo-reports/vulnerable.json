@@ -1,13 +1,13 @@
 {
   "schemaVersion": 2,
-  "toolVersion": "0.1.1",
-  "runId": "4ae6a6d2-25aa-4a0e-92a3-2680cf869bba",
-  "startedAt": "2026-10-22T18:24:36.604Z",
-  "finishedAt": "2026-10-22T18:24:36.811Z",
+  "toolVersion": "0.2.0",
+  "runId": "0d6a90bc-6225-441c-833f-38b09f51cd5a",
+  "startedAt": "2026-10-24T19:17:48.456Z",
+  "finishedAt": "2026-10-24T19:17:48.663Z",
   "mode": "local",
-  "targetOrigin": "http://127.0.0.1:49849",
+  "targetOrigin": "http://127.0.0.1:40979",
   "commit": null,
-  "planSha256": "f7d0c3e31f5f3212f82257cc4e30e77be5bf032c12c8714678800eb3b35132c9",
+  "planSha256": "3f8eaa867d5898d58ae93ba5d9846ac7d82ce23a8a5cda7cd1b780459d7642af",
   "requestsMade": 5,
   "checks": [
     {

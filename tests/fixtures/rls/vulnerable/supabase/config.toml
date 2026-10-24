@@ -1,0 +1,14 @@
+# Deliberately risky static-audit fixture. Never apply to a live project.
+project_id = "bal-rls-vulnerable"
+
+[api]
+schemas = ["public", "graphql_public"]
+
+[auth]
+enable_anonymous_sign_ins = true
+
+[auth.email]
+enable_confirmations = false
+
+[functions.ai-chat]
+verify_jwt = false

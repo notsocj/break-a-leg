@@ -4,6 +4,8 @@ import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 import { parsePlan } from './plan.ts';
 import { discover } from './discover.ts';
+import { rlsAudit } from './rls-audit.ts';
+import { scanSecrets } from './secrets.ts';
 import { runPlan } from './run.ts';
 import { renderReport } from './report.ts';
 import { VERSION } from './version.ts';
@@ -11,13 +13,18 @@ import { VERSION } from './version.ts';
 const help = `BreakALeg ${VERSION} — Node 22.18+ (24 LTS recommended)
 
   node <skill>/scripts/break-a-leg.mjs discover <project-root>
+  node <skill>/scripts/break-a-leg.mjs rls-audit <project-root>
+  node <skill>/scripts/break-a-leg.mjs secrets <project-root>
   node <skill>/scripts/break-a-leg.mjs validate <plan.json>
   node <skill>/scripts/break-a-leg.mjs run <plan.json> --out <new-directory> [--repo <project-root>]
 
-discover and validate make no network requests. run performs bounded GET probes
-against the explicitly scoped local or staging target. It never follows redirects.
-Exit codes: 0 = completed without findings or blocked checks; 1 = findings;
-2 = blocked/error (takes precedence over findings). Always inspect the report.
+discover, rls-audit, secrets, and validate are offline and make no network requests.
+rls-audit lists Supabase migration/config leads; secrets lists likely credentials by
+location and type only, never their values. Both exit 1 when they report leads.
+run performs bounded GET probes against the explicitly scoped local or staging target.
+It never follows redirects.
+Exit codes: 0 = completed without findings or blocked checks; 1 = findings or leads;
+2 = blocked/error (takes precedence over findings). Always inspect the output.
 `;
 
 async function readPlan(path: string) {
@@ -32,10 +39,21 @@ export async function main(args: string[]) {
   const [command, input, ...rest] = args;
   if (command === '--version' && !input) { console.log(VERSION); return 0; }
   if (!command || command === '--help' || command === 'help') { console.log(help); return 0; }
-  if (!input || !['discover', 'validate', 'run'].includes(command)) throw new Error('Unknown command or missing input; use --help');
+  if (!input || !['discover', 'rls-audit', 'secrets', 'validate', 'run'].includes(command)) throw new Error('Unknown command or missing input; use --help');
   if (command === 'discover') {
     if (rest.length) throw new Error('discover takes only a project root');
     console.log(JSON.stringify(await discover(input), null, 2)); return 0;
+  }
+  // Static helpers: print JSON, and exit 1 when there is something for the agent to review.
+  if (command === 'rls-audit') {
+    if (rest.length) throw new Error('rls-audit takes only a project root');
+    const result = await rlsAudit(input);
+    console.log(JSON.stringify(result, null, 2)); return result.leadCount ? 1 : 0;
+  }
+  if (command === 'secrets') {
+    if (rest.length) throw new Error('secrets takes only a project root');
+    const result = await scanSecrets(input);
+    console.log(JSON.stringify(result, null, 2)); return result.hitCount ? 1 : 0;
   }
   const plan = await readPlan(input);
   if (command === 'validate') {

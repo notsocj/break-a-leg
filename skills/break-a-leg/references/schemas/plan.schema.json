@@ -80,6 +80,11 @@
         "otherTokenEnv": {
           "type": "string",
           "pattern": "^[A-Z][A-Z0-9_]{0,99}$"
+        },
+        "cookieName": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9!#$%&'*+.^_`|~-]{1,128}$",
+          "description": "Optional. Send each session as this cookie instead of an Authorization bearer header."
         }
       },
       "required": [

@@ -1,6 +1,26 @@
 import type { RunReport } from './types.ts';
 
 function plain(value: string): string { return value.replace(/[\\`*_{}\[\]()#+.!|<>]/g, '\\$&').replace(/[\r\n]/g, ' '); }
+// Plain-language summary for founders: what to fix before launch, what can wait, and what
+// was not checked. Severity decides the bucket; evidence level is shown next to each item.
+function launchPriority(report: RunReport): string[] {
+  const findings = report.checks.flatMap(c => c.findings);
+  const buckets: Array<[string, string[]]> = [
+    ['Fix before launch', ['critical', 'high']],
+    ['Fix soon', ['medium']],
+    ['Good to know', ['low', 'informational']]
+  ];
+  const lines = ['## Launch priority', ''];
+  for (const [label, severities] of buckets) {
+    const items = findings.filter(f => severities.includes(f.severity));
+    if (items.length) lines.push(`**${label}**`, '', ...items.map(f => `- ${plain(f.title)} (${f.severity}, ${f.evidenceStatus})`), '');
+  }
+  if (!findings.length) lines.push('Nothing to fix from the checks that ran.', '');
+  const incomplete = report.checks.filter(c => !c.complete);
+  // Unfinished checks are listed here too, so "nothing to fix" is never read as "all clear".
+  if (incomplete.length) lines.push(`**Not fully checked:** ${incomplete.map(c => plain(c.id)).join(', ')}. See the coverage table for why.`, '');
+  return lines.slice(0, -1);
+}
 export function renderReport(report: RunReport): string {
   const findings = report.checks.flatMap(c => c.findings);
   const lines = [
@@ -11,6 +31,7 @@ export function renderReport(report: RunReport): string {
     `Requests: ${report.requestsMade} · Findings: ${findings.length} · Incomplete checks: ${report.checks.filter(c => !c.complete).length}`, '',
     `Evidence: ${findings.filter(f => f.evidenceStatus === 'runtime-reproduced').length} runtime reproduced; ${findings.filter(f => f.evidenceStatus === 'source-supported').length} source supported; ${findings.filter(f => f.evidenceStatus === 'needs-verification').length} need verification.`, '',
     'This report covers only the listed fixtures and checks. No findings does not establish that the application is secure.', '',
+    ...launchPriority(report), '',
     '## Check coverage', '', '| Check | Result | Complete | Explanation |', '| --- | --- | --- | --- |',
     ...report.checks.map(c => `| ${plain(c.id)} | ${plain(c.status)} | ${c.complete ? 'yes' : 'no'} | ${plain(c.reason)} |`), '',
     '## Findings', ''

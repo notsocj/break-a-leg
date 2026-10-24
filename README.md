@@ -6,7 +6,7 @@
 
 BreakALeg is an open-source agent skill for mobile founders. It reviews an app and its backend, investigates security weaknesses, and verifies selected issues against local or staging services when available. Staging is optional: a source review is a useful first run.
 
-Version **0.1.2 — early release**. MIT licensed. No telemetry, hosted account, or separate model API key is required by this package. Your coding agent's own model connection and data handling still apply.
+Version **0.2.0 — early release**. MIT licensed. No telemetry, hosted account, or separate model API key is required by this package. Your coding agent's own model connection and data handling still apply.
 
 ## Start here
 
@@ -28,24 +28,26 @@ An agent performs the review; `discover` only identifies candidate stacks. The h
 - Backend guides for Supabase, Firebase, and custom APIs.
 - Checks covering ownership/roles, credential exposure, server validation, storage, paid features, and expensive endpoints.
 - Local-first checks for app-lock transitions, sensitive dialogs, encrypted backups, and deletion across device stores.
-- A zero-dependency TypeScript runner for offline discovery, plan validation, and bounded cross-user/anonymous JSON read probes.
+- A "high-yield first pass" that sends the agent to where founder apps usually break: database rules, client keys, entitlements, unauthenticated server functions, and sign-in edges.
+- Guides for sign-in/OAuth/deep links/account deletion and for AI features (provider keys, cost limits, prompt injection into tools).
+- A zero-dependency TypeScript helper with offline stack discovery, a Supabase `rls-audit`, a `secrets` scan that never prints values, plan validation, and bounded cross-user/anonymous JSON read probes (bearer or cookie sessions).
+- Reports that open with a plain-language launch priority: fix before launch, fix soon, good to know, not checked.
 - Markdown and JSON reports distinguishing reproduced issues, source evidence, blocked checks, and untested areas.
 
-**Coverage is explicit.** The skill guides the agent's reasoning; it is not an exhaustive automated scanner. The runtime helper currently verifies only configured owner-only JSON reads with bearer authentication and a trusted identity endpoint. Firebase runtime verification uses the project's own emulator harness; there is no bundled Firebase SDK adapter. Device automation and binary analysis are not included. See the [coverage contract](skills/break-a-leg/references/coverage.md).
+**Coverage is explicit.** The skill guides the agent's reasoning; it is not an exhaustive automated scanner. The runtime helper currently verifies only configured owner-only JSON reads with bearer or cookie sessions and a trusted identity endpoint. `rls-audit` and `secrets` are static lead finders, not proof of exposure. Firebase runtime verification uses the project's own emulator harness; there is no bundled Firebase SDK adapter. Device automation and binary analysis are not included. See the [coverage contract](skills/break-a-leg/references/coverage.md).
 
-## Install in Codex
+## Install
 
-Copy the **entire** `skills/break-a-leg` folder into your Codex skills directory (`$CODEX_HOME/skills`, or `~/.codex/skills`). If a directory of that name already exists, inspect or back it up before replacing it. The folder is self-contained, including its helper runtime and schemas.
-
-Clone the repository and install. The installer refuses to overwrite an existing installation:
+Clone the repository and install for your agent. The installer copies the **entire** self-contained `skills/break-a-leg` folder, including its helper runtime and schemas, and refuses to overwrite an existing installation:
 
 ```sh
 git clone https://github.com/notsocj/break-a-leg.git
 cd break-a-leg
-python3 scripts/install.py
+python3 scripts/install.py                 # Codex: $CODEX_HOME/skills or ~/.codex/skills
+python3 scripts/install.py --agent claude  # Claude Code: ~/.claude/skills
 ```
 
-Start a new Codex chat if the skill is not discovered in the current one. Invoke it with a single request:
+Start a new chat or session if the skill is not discovered in the current one. In Claude Code, run `/break-a-leg` or just ask for a pre-launch security review. In Codex, invoke it with a single request:
 
 ```text
 Use $break-a-leg to review this app and backend before launch. Start with source analysis. Use an existing local or staging environment only when its target, test accounts, and scope are clear. Report reproduced issues separately from source-supported findings and checks you could not run.
@@ -53,7 +55,7 @@ Use $break-a-leg to review this app and backend before launch. Start with source
 
 To update an installed copy after pulling a newer version, run `python3 scripts/install.py --update`. It stages the replacement before changing the installed skill and preserves the previous copy, including local edits, under `skill-backups/` next to the skills directory. The installer prints the exact backup path. `--skills-dir /path/to/skills` supports a custom installation location.
 
-For another agent supporting the same skill-folder format, copy the folder into that agent's documented skill location. Agent-specific installation/discovery compatibility has not been tested beyond the Codex format; no universal cross-agent installer is claimed.
+For another agent supporting the same skill-folder format, copy the folder into that agent's documented skill location, or pass `--skills-dir`. Installation is documented for Codex and Claude Code; no universal cross-agent installer is claimed.
 
 ## Requirements
 
@@ -94,14 +96,16 @@ See the [vulnerable demo report](examples/demo-reports/vulnerable.md), [secure c
 
 ```sh
 node skills/break-a-leg/scripts/break-a-leg.mjs discover /path/to/app
+node skills/break-a-leg/scripts/break-a-leg.mjs secrets /path/to/app
+node skills/break-a-leg/scripts/break-a-leg.mjs rls-audit /path/to/app
 node skills/break-a-leg/scripts/break-a-leg.mjs validate examples/local-api.plan.json
 ```
 
-Validation is offline. The examples intentionally contain environment references rather than tokens. Adapt their origin, endpoint, fixture, and response pointer to your isolated service before using `run`. Full details: [runner guide](skills/break-a-leg/references/runner.md).
+`discover`, `secrets`, `rls-audit`, and `validate` are offline. `secrets` reports credential type and location only, never the value; `rls-audit` replays Supabase migrations and `config.toml` and lists access-control leads. Both exit 1 when they have something to review. The examples intentionally contain environment references rather than tokens. Adapt their origin, endpoint, fixture, and response pointer to your isolated service before using `run`. Full details: [runner guide](skills/break-a-leg/references/runner.md).
 
 The runner records authorization assertions but cannot prove ownership or environment isolation. GET endpoints must be semantically read-only. It blocks redirects, does not retry, limits requests and response sizes, and stops target traffic on transport failure, 429, or 5xx. These bounds apply to its own requests, not arbitrary tools used by an agent. It is not a sandbox.
 
-CLI exit codes: **0** means the configured checks completed without findings; **1** means findings with complete configured coverage; **2** means error or incomplete coverage, even when a finding was confirmed. None of these codes certifies the app as secure.
+`run` exit codes: **0** means the configured checks completed without findings; **1** means findings with complete configured coverage; **2** means error or incomplete coverage, even when a finding was confirmed. None of these codes certifies the app as secure.
 
 ## Repository structure
 
@@ -120,9 +124,9 @@ After editing runner source or schemas, run `npm run bundle`. Generated copies i
 
 `npm run check:docs` verifies local Markdown file links. `npm run test:python` covers installation and archive packaging; `npm run test:installer` runs only the installer cases. The maintainer packager selects Git-tracked files rather than arbitrary local files.
 
-The [local-first evaluation](evals/local-first/request.md) checks the agent's reasoning on a fictional source fixture. It is a manual evaluation, not an executable scanner test; provide its rubric only after the agent produces an assessment.
+Three manual evaluations check the agent's reasoning on fictional fixtures: [local-first](evals/local-first/request.md), [Supabase backend](evals/supabase-rls/request.md), and [false positives](evals/false-positives/request.md). They are not executable scanner tests; provide each rubric only after the agent produces an assessment.
 
-## What v0.1 does not promise
+## What BreakALeg does not promise
 
 No security certification, App Store approval, exhaustive vulnerability detection, automatic remediation, production active testing, password guessing, load testing, or turnkey simulator/binary testing. No runtime finding is claimed when tools, credentials, fixtures, or backend access are missing.
 

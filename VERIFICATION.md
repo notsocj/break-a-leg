@@ -1,8 +1,25 @@
 # Verification
 
-## Current repository maintenance checks
+## v0.2.0 checks
 
-Verified locally on 2026-10-24 using Node 24.18.0 on macOS. Changes after the v0.1.2 tag are listed under Unreleased in the changelog.
+Verified locally on 2026-10-25 using Node 22.23.4 and Python 3 on Linux. Consult the [workflow results](https://github.com/notsocj/break-a-leg/actions/workflows/test.yml) for Node 22 and 24 on the pushed commit.
+
+| Check | Result |
+| --- | --- |
+| Runner, discovery, static helper, and standalone CLI tests | 52 passed, 1 skipped (the IPv6-only localhost test; the verification host had no IPv6 loopback) |
+| Python installer and archive packaging tests | 14 passed |
+| Strict TypeScript and bundled-source parity | Passed |
+| Local Markdown file destinations | Passed |
+| Documented synthetic demo | Expected vulnerable and secure outcomes; loopback only |
+| `rls-audit` fixtures | Vulnerable fixture produced every expected lead; secure counterpart produced none |
+| `secrets` redaction | Tests assert no matched value appears in output; fixture keys are assembled at test time, not committed |
+| Claude Code installation | `install.py --agent claude` installed the complete skill into a temporary home's `.claude/skills` |
+
+The new Supabase and false-positive evaluations are added but have not been independently run with a coding agent. `rls-audit` was tested on synthetic migrations, not on a live Supabase project or real-world migration histories.
+
+## Earlier repository maintenance checks
+
+Verified locally on 2026-10-24 using Node 24.18.0 on macOS for the maintenance changes after the v0.1.2 tag.
 
 | Check | Result |
 | --- | --- |

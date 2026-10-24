@@ -9,11 +9,16 @@ function envValue(env: NodeJS.ProcessEnv, name: string): string {
   if (!value || value.length > 8192 || /[\r\n\x00]/.test(value)) throw new Error('Required environment reference is missing or invalid');
   return value;
 }
+// Roles in a JWT payload that mean "bypasses ordinary user rules". Probing with one of these
+// would measure admin access, not what an ordinary user can see, so the run must refuse it.
+const privilegedRoles = new Set(['service_role', 'supabase_admin', 'admin', 'superuser']);
 function rejectPrivileged(value: string) {
   if (value.startsWith('sb_secret_')) throw new Error('Privileged credentials cannot be used for probes');
   try {
+    // Decode the JWT payload (middle segment) without verifying it; we only inspect claims.
     const payload = JSON.parse(Buffer.from(value.split('.')[1] ?? '', 'base64url').toString('utf8'));
-    if (payload.role === 'service_role' || payload.role === 'supabase_admin') throw new Error('privileged');
+    // Supabase uses `role`; Firebase and custom backends commonly use boolean admin custom claims.
+    if (privilegedRoles.has(payload.role) || payload.admin === true || payload.is_admin === true || payload.isAdmin === true) throw new Error('privileged');
   } catch (error) {
     if ((error as Error).message === 'privileged') throw new Error('Privileged credentials cannot be used for probes');
   }
@@ -22,12 +27,27 @@ function credentials(plan: Plan, env: NodeJS.ProcessEnv) {
   const owner = envValue(env, plan.accounts.ownerTokenEnv);
   const other = envValue(env, plan.accounts.otherTokenEnv);
   if (owner === other) throw new Error('Owner and other-user tokens must differ');
-  for (const token of [owner, other]) { rejectPrivileged(token); if (/\s/.test(token)) throw new Error('Bearer tokens cannot contain whitespace'); }
+  for (const token of [owner, other]) {
+    rejectPrivileged(token);
+    if (/\s/.test(token)) throw new Error('Bearer tokens cannot contain whitespace');
+    // Cookie values cannot carry separators; reject rather than send a malformed or split cookie header.
+    if (plan.accounts.cookieName && /[;,"\\]/.test(token)) throw new Error('Session cookie values cannot contain separators');
+  }
   const apiKey = plan.publicApiKeyEnv ? envValue(env, plan.publicApiKeyEnv) : undefined;
   if (apiKey) rejectPrivileged(apiKey);
   const markers = plan.probes.map(p => envValue(env, p.markerEnv));
   if (markers.some(marker => marker.length < 16 || marker === owner || marker === other || marker === apiKey)) throw new Error('Use a synthetic fixture marker of at least 16 characters, separate from credentials');
   return { owner, other, apiKey, markers };
+}
+// Search a parsed JSON value, at any depth, for a string exactly equal to the marker.
+// The marker is a random synthetic value of 16+ characters, so an exact match anywhere in an
+// unauthorized response is strong evidence of a leak even when it is not at the configured
+// pointer (for example, the owner's row returned at index 1 of another user's list).
+export function containsMarker(value: unknown, marker: string, depth = 0): boolean {
+  if (depth > 64) return false; // bound recursion on deeply nested or hostile JSON
+  if (typeof value === 'string') return value === marker; // exact equality only, never substring
+  if (value && typeof value === 'object') return Object.values(value).some(v => containsMarker(v, marker, depth + 1));
+  return false;
 }
 function publicPath(path: string) { return path.split('?')[0] + (path.includes('?') ? '?[query omitted]' : ''); }
 function finding(id: string, path: string, actor: 'other' | 'anonymous'): Finding {
@@ -86,7 +106,9 @@ export async function runPlan(raw: unknown, options: { env?: NodeJS.ProcessEnv; 
       let ambiguous = false;
       for (const actor of ['other', 'anonymous'] as const) {
         const response = await transport.get(probe.path, actor === 'other' ? creds!.other : undefined, creds!.apiKey);
-        const leaked = response.isJson && atPointer(response.json, probe.markerPointer) === marker;
+        // The owner baseline above stays strict (pointer only), so the plan still proves which field is
+        // private. Unauthorized responses also get a deep search so a relocated marker is not missed.
+        const leaked = response.isJson && (atPointer(response.json, probe.markerPointer) === marker || containsMarker(response.json, marker));
         check.observations.push({ actor, status: response.status, markerMatched: leaked });
         // A private marker in any response is a leak, even if the HTTP status says denied.
         if (leaked) check.findings.push(finding(probe.id, probe.path, actor));

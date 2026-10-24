@@ -1,16 +1,23 @@
 # BreakALeg security rehearsal
 
-Run: 4ae6a6d2-25aa-4a0e-92a3-2680cf869bba · Version: 0\.1\.1
+Run: 0d6a90bc-6225-441c-833f-38b09f51cd5a · Version: 0\.2\.0
 
-Environment: local · Target: http://127\.0\.0\.1:49849
+Environment: local · Target: http://127\.0\.0\.1:40979
 
-Started: 2026-10-22T18:24:36\.604Z · Commit: not recorded
+Started: 2026-10-24T19:17:48\.456Z · Commit: not recorded
 
 Requests: 5 · Findings: 2 · Incomplete checks: 0
 
 Evidence: 2 runtime reproduced; 0 source supported; 0 need verification.
 
 This report covers only the listed fixtures and checks. No findings does not establish that the application is secure.
+
+## Launch priority
+
+**Fix before launch**
+
+- Private fixture readable by another user (high, runtime-reproduced)
+- Private fixture readable by an anonymous caller (high, runtime-reproduced)
 
 ## Check coverage
 

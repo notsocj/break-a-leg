@@ -6,8 +6,11 @@ import { resolvePath } from './plan.ts';
 import { VERSION } from './version.ts';
 
 export type Response = { status: number; json: unknown; isJson: boolean };
+// Resolve "localhost" without DNS so it can never reach a remote address in local mode.
+// Offer both loopback families: Node tries each in turn, so a dev server bound only to ::1
+// (common for some Vite/Next.js setups) is reachable as well as one bound to 127.0.0.1.
 const loopbackLookup: LookupFunction = (_host, options, callback) => {
-  if (options.all) callback(null, [{ address: '127.0.0.1', family: 4 }]);
+  if (options.all) callback(null, [{ address: '127.0.0.1', family: 4 }, { address: '::1', family: 6 }]);
   else callback(null, '127.0.0.1', 4);
 };
 export class ScopedTransport {
@@ -28,7 +31,12 @@ export class ScopedTransport {
       if (pause > 0) await new Promise(resolve => setTimeout(resolve, pause));
       this.lastStarted = Date.now(); this.count++;
       const headers: Record<string, string> = { accept: 'application/json', 'accept-encoding': 'identity', 'user-agent': `BreakALeg/${VERSION}` };
-      if (token) headers.authorization = `Bearer ${token}`;
+      if (token) {
+        // Sessions are sent the way the plan declares: a bearer header by default, or a named
+        // cookie for APIs that authenticate with cookie sessions (common in Next.js/Express apps).
+        if (this.plan.accounts.cookieName) headers.cookie = `${this.plan.accounts.cookieName}=${token}`;
+        else headers.authorization = `Bearer ${token}`;
+      }
       if (publicApiKey) headers.apikey = publicApiKey;
       return await new Promise<Response>((resolve, reject) => {
         let settled = false;

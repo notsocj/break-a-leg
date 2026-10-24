@@ -2,7 +2,7 @@
 
 Choose fields tied to sensitive behavior: owner/tenant IDs, quantities, prices, URLs, filenames, rich text, and query parameters. Trace the client field to the server validator, domain logic, and final sink. UI-only constraints are a hypothesis until the backend is inspected.
 
-Use small, representative boundary cases in existing isolated tests: missing required field, wrong type, out-of-range number, duplicate operation, or unauthorized protected field. Avoid broad fuzzing, oversized payloads, expensive regular-expression probes, and destructive injection payloads in v0.1.
+Use small, representative boundary cases in existing isolated tests: missing required field, wrong type, out-of-range number, duplicate operation, or unauthorized protected field. Avoid broad fuzzing, oversized payloads, expensive regular-expression probes, and destructive injection payloads.
 
 Confirm a security consequence such as unauthorized state change, unsafe rendering in a reachable WebView, or unsafe SQL construction. A validation error, harmless unusual input, or a crash in an isolated test is not automatically a data breach. Report robustness issues separately when relevant.
 

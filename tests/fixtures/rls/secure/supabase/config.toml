@@ -1,0 +1,11 @@
+# Secure counterpart for the rls-audit tests.
+project_id = "bal-rls-secure"
+
+[auth]
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_confirmations = true
+
+[functions.stripe-webhook]
+verify_jwt = true

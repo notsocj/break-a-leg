@@ -1,0 +1,52 @@
+FICTIONAL HABIT TRACKER — MIGRATIONS AND PSEUDOCODE, NOT EXECUTABLE
+
+Product contract:
+- Each user's habits and journal entries are private to that user.
+- Public profiles (display name, avatar) are visible to everyone.
+- "Pro" subscribers (via RevenueCat) get an AI coach; free users get 3 coach messages total.
+- Avatars are public. Uploaded progress photos are private.
+
+supabase/config.toml:
+  [auth]
+  enable_anonymous_sign_ins = true      # "try before signing up"
+  [functions.coach]
+  verify_jwt = false
+  [functions.revenuecat-webhook]
+  verify_jwt = false
+
+supabase/migrations/001_init.sql:
+  create table public.profiles (id uuid primary key references auth.users, display_name text, avatar_url text, is_pro boolean default false, coach_credits int default 3);
+  alter table public.profiles enable row level security;
+  create policy "profiles readable" on public.profiles for select using (true);
+  create policy "own profile update" on public.profiles for update using (auth.uid() = id);
+
+  create table public.habits (id uuid primary key, user_id uuid, title text);
+  alter table public.habits enable row level security;
+  create policy "own habits" on public.habits for all using (auth.uid() = user_id);
+
+  create table public.journal_entries (id uuid primary key, user_id uuid, body text, mood int);
+  -- RLS to be added later
+
+  insert into storage.buckets (id, name, public) values ('avatars', 'avatars', true);
+  insert into storage.buckets (id, name, public) values ('progress', 'progress', true);
+
+supabase/functions/coach/index.ts (pseudocode):
+  body = await req.json()                 // { userId, message }
+  profile = serviceRoleClient.from('profiles').select().eq('id', body.userId)
+  if (!profile.is_pro and profile.coach_credits <= 0) return 402
+  reply = openai.chat(model = body.model ?? 'gpt-4o', messages = [system, body.message])
+  serviceRoleClient.from('profiles').update({ coach_credits: profile.coach_credits - 1 }).eq('id', body.userId)
+  return reply
+
+supabase/functions/revenuecat-webhook/index.ts (pseudocode):
+  event = await req.json()
+  if event.type in ('INITIAL_PURCHASE', 'RENEWAL'):
+    serviceRoleClient.from('profiles').update({ is_pro: true }).eq('id', event.app_user_id)
+  // no Authorization header check
+
+app/lib/supabase.ts:
+  createClient(EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY)
+
+app/screens/Coach.tsx:
+  if (customerInfo.entitlements.active['pro']) show unlimited coach UI
+  fetch(FUNCTIONS_URL + '/coach', { body: { userId: session.user.id, message } })

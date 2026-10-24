@@ -36,13 +36,23 @@ def install(source: Path, destination: Path, update: bool = False):
     return backup
 
 
+def default_skills_dir(agent: str) -> Path:
+    """Return the personal skills directory each supported agent discovers skills from."""
+    if agent == 'claude':
+        # Claude Code loads personal skills from ~/.claude/skills/<skill-name>/SKILL.md.
+        return Path.home() / '.claude' / 'skills'
+    # Codex honors CODEX_HOME and otherwise uses ~/.codex.
+    return Path(os.environ.get('CODEX_HOME', str(Path.home() / '.codex'))) / 'skills'
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--skills-dir', type=Path, help='Override the destination skills directory')
+    parser.add_argument('--agent', choices=['codex', 'claude'], default='codex', help='Agent to install for: codex (default) or claude (Claude Code)')
+    parser.add_argument('--skills-dir', type=Path, help='Override the destination skills directory (takes precedence over --agent)')
     parser.add_argument('--update', action='store_true', help='Replace an existing skill, preserving it under the parent skill-backups directory')
     args = parser.parse_args()
     source = Path(__file__).resolve().parents[1] / 'skills' / 'break-a-leg'
-    skills_dir = args.skills_dir or Path(os.environ.get('CODEX_HOME', str(Path.home() / '.codex'))) / 'skills'
+    skills_dir = args.skills_dir or default_skills_dir(args.agent)
     destination = skills_dir.expanduser().resolve() / 'break-a-leg'
     try:
         backup = install(source, destination, args.update)

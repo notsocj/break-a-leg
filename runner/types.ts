@@ -7,7 +7,7 @@ export type Plan = {
   target: string;
   scope: { authorized: true; isolatedTestData: true; readOnlyEndpoints: true };
   limits: { maxRequests: number; timeoutMs: number; delayMs: number; maxResponseBytes: number };
-  accounts: { ownerTokenEnv: string; otherTokenEnv: string };
+  accounts: { ownerTokenEnv: string; otherTokenEnv: string; cookieName?: string };
   publicApiKeyEnv?: string;
   identity: { path: string; subjectPointer: string };
   probes: Array<{

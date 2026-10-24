@@ -12,6 +12,14 @@ Evidence: 0 runtime reproduced; 1 source supported; 0 need verification.
 
 This report covers only the listed fixtures and checks. No findings does not establish that the application is secure.
 
+## Launch priority
+
+**Fix before launch**
+
+- Unconditional policy permits reads of owner-only notes (high, source-supported)
+
+**Not fully checked:** live-backend-runtime, native-device. See the coverage table for why.
+
 ## Check coverage
 
 | Check | Result | Complete | Explanation |

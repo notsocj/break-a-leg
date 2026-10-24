@@ -21,6 +21,6 @@ Before an active run, record:
 
 Ask about unresolved target or identity facts once, then continue within that scope. Do not ask a founder to create staging before offering a source review. Local setup is an option, not an automatic migration: require reproducible schema/rules and seed synthetic data instead of cloning production records.
 
-The runner accepts local literal loopback or localhost, and HTTPS staging origins. It does not follow redirects, trust environment HTTP proxy settings, or disable TLS verification. It uses one request at a time. Transport failure, deadline, response-size overflow, redirect, 429, or 5xx stops further target requests. An invalid baseline blocks that probe without converting it into a pass.
+The runner accepts local literal loopback or localhost (resolved to 127.0.0.1 or ::1 without DNS), and HTTPS staging origins. It does not follow redirects, trust environment HTTP proxy settings, or disable TLS verification. It uses one request at a time. Transport failure, deadline, response-size overflow, redirect, 429, or 5xx stops further target requests. An invalid baseline blocks that probe without converting it into a pass.
 
 The runner enforces its own operations only. It cannot sandbox the agent, prove ownership, detect every privileged opaque token, or prevent a server-side GET from triggering a side effect. Strong containment requires the execution host's network/process controls.

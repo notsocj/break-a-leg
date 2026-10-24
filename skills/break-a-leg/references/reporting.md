@@ -24,9 +24,12 @@ Do not persist access/refresh tokens, private keys, passwords, cookies, producti
 
 ## Suggested narrative structure
 
-1. Scope and outcome: number of reproduced/source-supported issues and material limits.
-2. Findings in impact order: evidence, cause, remediation, retest.
-3. Coverage table: check, environment, status, reason.
-4. Cleanup: resource identifiers without credentials, removed/remaining, next action.
+1. Launch priority in plain language: Fix before launch (critical/high), Fix soon (medium), Good to know (low/informational), and Not checked (blocked or skipped areas). Show each item's evidence status beside it; a source-supported high-severity issue still belongs under Fix before launch.
+2. Scope and outcome: number of reproduced/source-supported issues and material limits.
+3. Findings in impact order: evidence, cause, remediation, retest. Where it helps, include the exact policy, rule, or handler change as a proposed patch, labeled unapplied.
+4. Coverage table: check, environment, status, reason.
+5. Cleanup: resource identifiers without credentials, removed/remaining, next action.
+
+The runner's Markdown report already opens with a launch-priority section for its own checks. Static helper output from `rls-audit` and `secrets` contains leads, not findings: report a lead only after tracing it, and keep the helper output out of committed files.
 
 If an ordinary denial body contains data but not the configured marker, the helper cannot prove it harmless. Review observed application semantics separately; retain that narrow-coverage limitation.

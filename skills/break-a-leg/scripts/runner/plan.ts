@@ -45,8 +45,11 @@ export function parsePlan(value: unknown): Plan {
   integer(limits.delayMs, 50, 5000, 'delayMs');
   integer(limits.maxResponseBytes, 1024, 1048576, 'maxResponseBytes');
   const accounts = object(p.accounts, 'accounts');
-  keys(accounts, ['ownerTokenEnv', 'otherTokenEnv'], 'accounts');
+  keys(accounts, ['ownerTokenEnv', 'otherTokenEnv', 'cookieName'], 'accounts');
   envName(accounts.ownerTokenEnv); envName(accounts.otherTokenEnv);
+  // Optional: send sessions as a cookie with this name instead of a bearer header.
+  // Restricted to RFC 6265 token characters so the name cannot inject other cookies or headers.
+  if (accounts.cookieName !== undefined && (typeof accounts.cookieName !== 'string' || !/^[A-Za-z0-9!#$%&'*+.^_`|~-]{1,128}$/.test(accounts.cookieName))) fail('cookieName must be a plain cookie name');
   if (accounts.ownerTokenEnv === accounts.otherTokenEnv) fail('Two distinct test-account token references are required');
   if (p.publicApiKeyEnv !== undefined) envName(p.publicApiKeyEnv);
   const identity = object(p.identity, 'identity');
