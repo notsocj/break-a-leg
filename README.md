@@ -6,13 +6,14 @@
 
 BreakALeg is an open-source agent skill for mobile founders. It reviews an app and its backend, investigates security weaknesses, and verifies selected issues against local or staging services when available. Staging is optional: a source review is a useful first run.
 
-Version **0.1.1 — early release**. MIT licensed. No telemetry, hosted account, or separate model API key is required by this package. Your coding agent's own model connection and data handling still apply.
+Version **0.1.2 — early release**. MIT licensed. No telemetry, hosted account, or separate model API key is required by this package. Your coding agent's own model connection and data handling still apply.
 
 ## What you get
 
 - Stack-specific review guides for Flutter, React Native/Expo, Swift/iOS, and Kotlin/Android, plus generic guidance for other mobile stacks.
 - Backend guides for Supabase, Firebase, and custom APIs.
 - Checks covering ownership/roles, credential exposure, server validation, storage, paid features, and expensive endpoints.
+- Local-first checks for app-lock transitions, sensitive dialogs, encrypted backups, and deletion across device stores.
 - A zero-dependency TypeScript runner for offline discovery, plan validation, and bounded cross-user/anonymous JSON read probes.
 - Markdown and JSON reports distinguishing reproduced issues, source evidence, blocked checks, and untested areas.
 
@@ -50,11 +51,13 @@ For another agent supporting the same skill-folder format, copy the folder into 
 
 | Mode | Available work |
 | --- | --- |
-| Review | Source, configuration, policy, and existing-test analysis; no target traffic |
+| Review | Source, configuration, policy, and isolated project tests with synthetic data; no target traffic |
 | Local | Bounded checks against an isolated loopback backend/emulator |
 | Staging | Bounded checks against an explicitly scoped HTTPS staging origin |
 
 If only production exists, BreakALeg continues in review mode. A staging database is insufficient if auth, storage, payments, email, or functions still point to production. Environment setup is never performed silently.
+
+An app with no backend can still be reviewed and tested through its local application boundaries. Widget tests can reproduce application behavior with mocked platform services; they do not verify native biometrics, Keychain/Keystore, or release-device behavior.
 
 ## Try the local demo
 
@@ -94,9 +97,12 @@ schemas/            Canonical plan/report JSON schemas
 scripts/            Bundling and no-overwrite installer
 examples/           Plans and generated synthetic example reports
 tests/              Behavioral tests and vulnerable/secure fixtures
+evals/              Manual skill reasoning cases and separate grading rubrics
 ```
 
 After editing runner source or schemas, run `npm run bundle`. Generated copies inside the skill are included so skill installation needs no build. `npm run check:bundle` checks for drift. Development-only type checking uses `npm ci --ignore-scripts` followed by `npm run typecheck`; the installed skill needs no packages. Contributor instructions are in [CONTRIBUTING.md](CONTRIBUTING.md).
+
+The [local-first evaluation](evals/local-first/request.md) checks the agent's reasoning on a fictional source fixture. It is a manual evaluation, not an executable scanner test; provide its rubric only after the agent produces an assessment.
 
 ## What v0.1 does not promise
 

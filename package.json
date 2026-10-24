@@ -1,6 +1,6 @@
 {
   "name": "break-a-leg",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Give your mobile app a security rehearsal before launch.",
   "type": "module",

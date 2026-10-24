@@ -6,6 +6,8 @@ Trace HTTP/Dio, Supabase, and Firebase calls from repositories/services to their
 
 Inspect sensitive data written through SharedPreferences, Hive, SQLite, files, logs, and crash reporting. Verify the actual storage implementation and threat before recommending Keychain/Keystore-backed storage. Do not assume every local database needs encryption or every preference is sensitive.
 
+For local app locks and data lifecycle, use [local-data.md](../checks/local-data.md). In Flutter, inspect `StreamBuilder`/`FutureBuilder` pending and error branches, `WidgetsBindingObserver`, `local_auth` recovery, and the gate's position relative to `MaterialApp`/`Navigator`. Exercise real dialogs and callbacks across relock; a protected `home` is not necessarily a protected overlay. Read the resolved plugin interface before writing mocks; a widget test does not exercise the native biometric or secure-storage implementation.
+
 Treat Dart constants, assets, `.env` assets, and dart-define values shipped in the app as recoverable by users. Public Firebase config/Supabase publishable keys are not secrets by themselves. Trace a suspected privileged key to an included build path before reporting exposure.
 
 Review `HttpOverrides`, certificate callbacks, WebViews, deep links, and broad platform network exceptions in the release configuration. Debug-only exceptions are not automatically production findings. Check whether a deep link can invoke a sensitive action without a server authorization check.

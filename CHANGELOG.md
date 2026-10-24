@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.2 — 2026-10-24
+
+- Add a local-data guide for app-lock loading/error states, authentication recovery, navigator overlays across relock, backup validation, and deletion across separate stores.
+- Clarify that review mode can include isolated unit/widget tests without a backend or staging environment.
+- Require local reproductions to disclose platform mocks, distinguish reproduction assertions from secure expectations, and preserve device verification gaps.
+- Distinguish absent backend features and planned integrations from unavailable enforcement code.
+- Add a fictional local-first evaluation case and withheld grading rubric; no private application code or findings are included.
+- Runtime probe capabilities and report/plan schema versions are unchanged.
+
 ## 0.1.1 — 2026-10-23
 
 - Preserve incomplete coverage when one actor reveals a private fixture but another actor's result is inconclusive. CLI exit status and Markdown now use explicit completeness instead of observation-count/text heuristics.

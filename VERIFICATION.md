@@ -1,6 +1,6 @@
-# BreakALeg v0.1.1 verification
+# BreakALeg v0.1.2 verification
 
-Verified on 2026-10-23 using Node 24.18.0 on macOS.
+Verified locally on 2026-10-24 using Node 24.18.0 on macOS. This describes the local v0.1.2 candidate; consult GitHub for published versions and CI results.
 
 | Check | Result |
 | --- | --- |
@@ -13,7 +13,8 @@ Verified on 2026-10-23 using Node 24.18.0 on macOS.
 | Bundled runtime/schema parity with canonical source | Passed |
 | Standalone copied-skill execution | Passed outside the source repository |
 | Installer | Refuses implicit overwrite; explicit updates preserve the old skill and restore it if replacement fails |
-| Synthetic demo | Vulnerable fixture: two findings; secure counterpart: no issue observed for the configured read |
+| Synthetic vulnerable/secure fixtures | Existing runner tests reproduced unauthorized reads and verified the secure counterpart's denials |
+| Local-first reasoning case | Fictional input and withheld rubric added; not independently evaluated |
 
 The HTTP tests bind only loopback and use synthetic credentials and data. They cover positive/negative baselines, cross-user and anonymous access, identity failures, recognizable privileged credentials, redirects (including cross-origin), rate limiting, server errors, timeouts, slow responses, response caps, compressed/aborted responses, concurrency, budgets, redaction, partial findings, mixed conclusive/inconclusive responses, and output overwrite refusal. Packaging tests also detect version drift and obsolete generated code.
 
@@ -22,9 +23,9 @@ The TypeScript and type declarations are development dependencies only. The inst
 ## Limits of this verification
 
 - No real Supabase or Firebase deployment/emulator was started; the provider-specific fixtures and guides are not live integration certification.
-- No Flutter, Expo/React Native, Swift, or Kotlin app was built or run on a device. Included mobile fixtures are source/discovery examples.
+- A private Flutter source review used isolated widget/unit tests with synthetic data and platform mocks. This informed the local-data guide; private app source and findings are excluded from this repository. No app was run on a device, and no native biometric/secure-storage integration was certified. Included public mobile fixtures remain source/discovery examples.
 - Staging HTTPS origin validation is tested offline; no external staging target was contacted.
-- The skill has not undergone an independent coding-agent behavioral evaluation or pilot with real founders.
+- The skill has not undergone an independent coding-agent behavioral evaluation or a broader founder pilot. The local-first evaluation rubric is not automatically scored by the test suite.
 - GitHub Actions is configured to run checks on Node 22 and 24; consult the [workflow results](https://github.com/notsocj/break-a-leg/actions/workflows/test.yml) for the exact published commit. Local execution used Node 24.18.0.
 - The public repository has private vulnerability reporting enabled. No npm registry package is published; install the self-contained skill directory from the repository.
 

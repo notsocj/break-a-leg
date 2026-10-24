@@ -2,11 +2,13 @@
 
 | Mode | Minimum inputs | Permitted work | Important limitation |
 | --- | --- | --- | --- |
-| Review | App sources, and backend/policies if available | Read files, trace flows, examine existing tests; no target traffic | Missing backend code prevents conclusions about server enforcement |
+| Review | App sources, and backend/policies if available | Source analysis and isolated project tests with synthetic data; no target traffic | Mocked platform tests do not verify device behavior; missing backend code prevents server conclusions |
 | Local | Explicit loopback origin and isolated backend/emulators, ordinary test accounts, synthetic fixture | Bounded requests, plus separately authorized local fixture setup | Local configuration may differ from deployed configuration |
 | Staging | Explicit HTTPS origin, known project/environment, isolated accounts/data and external integrations | Bounded checks against the agreed endpoints | The name “staging” does not establish isolation |
 
 If the only known backend is production, continue source review. Do not automatically contact it, even to “check” access. Resolving a URL from an app config is discovery, not permission to test it.
+
+Review mode can include local unit/widget tests without inventing an HTTP target or provisioning staging. Keep `targetOrigin` null and `requestsMade` zero; describe the test harness separately. Classify nonexistent backend features as not applicable after tracing implementation; do not classify an existing but inaccessible backend that way.
 
 Before an active run, record:
 

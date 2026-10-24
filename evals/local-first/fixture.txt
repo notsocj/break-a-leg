@@ -1,0 +1,45 @@
+FICTIONAL JOURNAL APP — PSEUDOCODE, NOT EXECUTABLE
+
+Product contract:
+- Optional app lock protects private journal screens after launch and backgrounding.
+- An owner may explicitly disable it after successfully unlocking.
+- "Erase this device" promises to remove the journal and all app-owned credentials.
+- No backend, accounts, telemetry, or online assistant exists in this version.
+
+Facts:
+- appRoot owns a navigator; its home is LockView(content: JournalScreen).
+- JournalScreen can open a navigator-level erase confirmation dialog.
+- That dialog calls eraseDevice after confirmation. It does not check current lock state.
+- onBackground sets locked=true; onResume keeps that state until authentication.
+- An app-owned secure store has separate vaultKey and optionalProviderCredential entries.
+- The provider credential is user-entered. There is no credential literal in this fixture.
+- A configured native cipher encrypts the production database. Unit fixtures use plain memory databases.
+- An unused future assistant service is marked TODO and has no production caller.
+
+LockView rendering:
+  if settings.hasValue:
+    enabled = settings.value.lockEnabled
+  else:
+    enabled = false
+  if enabled and locked: show LockedScreen
+  else: show content
+
+LockedScreen unlock action:
+  try:
+    if deviceAuthenticate() == true: locked = false
+  catch platformUnavailable:
+    show button "Recover access"
+    button action: save(lockEnabled=false)
+
+eraseDevice:
+  close database
+  remove database and journal sidecars
+  remove secureStore.vaultKey
+  clear ordinary preferences
+  navigate to welcome screen
+
+Controls:
+- deviceAuthenticate() returning false leaves the lock enabled and locked.
+- An explicit saved lockEnabled=false is a supported user choice.
+- Backup import authenticates its ciphertext before replacing any file.
+- No release database artifact, physical device, or runnable test harness is supplied.

@@ -10,6 +10,7 @@
 | Custom REST API reads | Generic bounded runner | Bearer sessions, trusted identity endpoint, JSON private marker |
 | Ownership authorization reads | Automated runtime probe | Owner baseline and two distinct identities |
 | Secret/storage/validation/entitlement checks | Agent-guided source analysis and project tests | No claim of automatic exhaustive scanning |
+| Local app lock, lifecycle overlays, backup, deletion | Dedicated guide plus isolated project tests | Name mocked platform boundaries; widget tests are not native-device verification |
 | Write authorization, subscription sandbox, uploads | Project-specific isolated tests | Record scope, evidence, setup and cleanup; otherwise untested |
 | Device UI, binary analysis, jailbreak/tamper resistance | Not bundled | Mark skipped unless separately requested and available |
 | Production active testing, password guessing, load testing | Outside v0.1 | Do not run |
