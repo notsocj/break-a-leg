@@ -56,6 +56,24 @@ Findings:
 - The skill again changed the report: launch priority, `source-supported` labels, coverage tables with not-applicable versus blocked, and helper-lead triage. In the multi-tenant case the skill run triaged all nine `rls-audit` leads (four real, five intended); the audit did not cover the member invoice edit or the missing share-link expiry check.
 - Both Firebase runs found further real issues in the payment flow (webhook state and amount checks, payout idempotency) and tutor self-rating. The rubric now lists them as valid extras.
 
+### Smaller model (Claude Haiku 5.5)
+
+Run on 2026-11-03 against commit `de067c4` with the same isolation and grading. The original Supabase case was skipped because the multi-tenant case covers the same ground.
+
+| Case | Defects found (skill / baseline) | Decoys wrongly rated medium or high (skill / baseline) | Report discipline (skill / baseline) |
+| --- | --- | --- | --- |
+| Multi-tenant Supabase | 6/6 / 6/6 | 0 / 1 (`audit_log` as a missing audit trail) | Pass / Partial: no evidence labels |
+| Firebase marketplace | 6/6 / 6/6 | 1 (open chat creation) / 3 (open chat creation, SVG avatars, App Check coverage) | Pass / Fail: no evidence labels or coverage split |
+| Local-first | 4/4 / 4/4 | 0 / 0 | Pass / Partial: no not-applicable/skipped split |
+| False positives | No findings above low / No findings above low | 0 / 0 | Pass / Pass |
+
+Findings:
+
+- Haiku also found every defect without the skill, so these fixtures do not separate finding ability even on the smaller model.
+- The skill's effect on Haiku was precision and reporting: fewer decoys raised to medium or high (1 versus 4 across the two harder cases), plus the evidence labels, launch priority, and coverage tables seen with Opus.
+- Both local-first runs made the same reasoning slip: they treated the leftover provider credential as latent because the assistant service is unused, although the credential is user-entered and stored regardless.
+- Helper noise seen in the multi-tenant skill run: `rls-audit` raised `user-writable-privileged-columns` on `invitations`, whose only write policy is admin-gated through `is_org_admin`, and `storage-policy-without-identity` on a storage policy that checks membership through `is_org_member()` instead of calling `auth.*` directly. The agent dismissed both after tracing.
+
 ## Earlier repository maintenance checks
 
 Verified locally on 2026-10-24 using Node 24.18.0 on macOS for the maintenance changes after the v0.1.2 tag.
