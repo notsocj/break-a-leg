@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Supabase guide: flag `user_metadata` in policies, and replace the outdated default-grant statement with Supabase's 2026 Data API grant change.
+- Firebase guide: flag test-mode expiry rules, Realtime Database cascading grants, and roles read from user-writable documents.
+
 ## 0.2.0 — 2026-10-25
 
 ### Finds more real issues

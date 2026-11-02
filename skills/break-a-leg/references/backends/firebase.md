@@ -24,8 +24,11 @@ The bundled generic HTTP runner is not a Firebase SDK/rules adapter. If the proj
 ## High-yield patterns
 
 - `allow read, write: if true;` or a broad `match /{document=**}` that overrides narrower rules (rules grant access if any match allows it).
+- Console test-mode rules such as `if request.time < timestamp.date(...)`: everything stays open to anyone until that date.
+- Realtime Database `.read`/`.write` grants near the root of `database.rules.json`: they cascade to every child path, and a child `false` cannot revoke them.
 - Rules that check only `request.auth != null`: every signed-in user, including anonymous users, can read or write every document in that path.
 - Owner checks on read but not on create/update, so a user can write a document with someone else's `uid`, or change `ownerId`, `role`, `credits`, or `isPremium` fields. Look for missing `request.resource.data` field allowlists.
+- Roles or plans read with `get()` from a profile document the user can also write. Use custom claims (`request.auth.token`) or a document only the server writes.
 - Storage rules that allow any authenticated user under a shared path instead of `request.auth.uid == userId`.
 - Callable/HTTP Cloud Functions that use the Admin SDK without checking `context.auth` or a verified ID token, or that trust a client-supplied user ID.
 - Service-account JSON (a `private_key` field) in the repository or app bundle (run `secrets`). Firebase web/client config is public by design.
