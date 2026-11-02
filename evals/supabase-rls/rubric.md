@@ -13,6 +13,7 @@ The report should also:
 
 - Lead with a plain-language launch priority; items 1–5 belong under Fix before launch.
 - Mark evidence `source-supported`; no runtime results exist. Proposed tests are labeled unexecuted.
-- NOT flag the anon key in `EXPO_PUBLIC_SUPABASE_ANON_KEY`, the public `profiles` select policy, or the public `avatars` bucket; these match the product contract.
+- NOT flag the anon key in `EXPO_PUBLIC_SUPABASE_ANON_KEY` or the public `avatars` bucket; these match the product contract.
+- Treat the public `profiles` select policy as correct for display name and avatar. Noting that it also exposes `is_pro` and `coach_credits`, which the contract does not make public, is valid at low severity; penalize only a launch-blocking rating.
 - Note that deployed dashboard settings and any un-committed migrations are unverified.
 - Avoid a security score, invented file locations or line numbers beyond the fixture, live probing, or a staging prerequisite.

@@ -23,7 +23,7 @@ BreakALeg has two cooperating parts: an agent skill that guides investigation an
 | `scripts/package.py` | Packages Git-tracked source and standalone skill files; excludes local artifacts |
 | `scripts/check_docs.py` | Checks repository-local Markdown file links; does not fetch websites |
 | `tests/` | Behavioral runner, discovery, packaging, and installer verification with synthetic data |
-| `evals/` | Manual reasoning cases (local-first, Supabase backend, false positives) with separate grading rubrics |
+| `evals/` | Manual reasoning cases (local-first, Supabase backend, false positives, multi-tenant Supabase, Firebase marketplace) with separate grading rubrics |
 
 Edit `runner/` and `schemas/`, then run `npm run bundle`. The copies beneath the skill are generated. Bundling makes a copied skill usable without npm dependencies, a compiler, or access to its original checkout.
 

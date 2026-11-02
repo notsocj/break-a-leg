@@ -1,0 +1,112 @@
+FICTIONAL TEAM INVOICING APP — MIGRATIONS AND PSEUDOCODE, NOT EXECUTABLE
+
+Product contract:
+- Users belong to organizations through memberships with role 'owner', 'admin', or 'member'.
+- Members can read their organization's clients, invoices, and attachments. Only owners and admins create or edit invoices and invite people.
+- People join an organization only by accepting an invitation sent by an owner or admin.
+- Plans: free, team, business. The plan comes from what the organization paid for in Stripe.
+- A document can be shared read-only through a link that expires at its expires_at time.
+- The plan catalog and user avatars are public.
+
+supabase/config.toml:
+  [auth]
+  enable_anonymous_sign_ins = false
+  [auth.email]
+  enable_confirmations = true
+  [functions.stripe-webhook]
+  verify_jwt = false
+  [functions.create-checkout]
+  verify_jwt = true
+
+supabase/migrations/20260301000000_orgs.sql:
+  create table public.organizations (id uuid primary key default gen_random_uuid(), name text not null, plan text not null default 'free', stripe_customer text);
+  create table public.memberships (org_id uuid references public.organizations on delete cascade, user_id uuid references auth.users on delete cascade, role text not null default 'member', primary key (org_id, user_id));
+  create table public.invitations (id uuid primary key default gen_random_uuid(), org_id uuid references public.organizations, email text not null, role text not null default 'member', accepted_at timestamptz);
+  alter table public.organizations enable row level security;
+  alter table public.memberships enable row level security;
+  alter table public.invitations enable row level security;
+
+  create function public.is_org_member(p_org uuid) returns boolean
+  language sql stable security definer set search_path = '' as $$
+    select exists (select 1 from public.memberships where org_id = p_org and user_id = (select auth.uid()));
+  $$;
+  create function public.is_org_admin(p_org uuid) returns boolean
+  language sql stable security definer set search_path = '' as $$
+    select exists (select 1 from public.memberships where org_id = p_org and user_id = (select auth.uid()) and role in ('owner', 'admin'));
+  $$;
+
+  create policy "members read org" on public.organizations for select to authenticated using (public.is_org_member(id));
+  create policy "members read memberships" on public.memberships for select to authenticated using (public.is_org_member(org_id));
+  create policy "join org" on public.memberships for insert to authenticated with check (user_id = (select auth.uid()));
+  create policy "admins manage invitations" on public.invitations for all to authenticated using (public.is_org_admin(org_id)) with check (public.is_org_admin(org_id));
+  create policy "invitee reads invitation" on public.invitations for select to authenticated using (email = (select auth.jwt() ->> 'email'));
+  revoke update on public.organizations from authenticated;
+
+supabase/migrations/20260302000000_billing_docs.sql:
+  create table public.plans (id text primary key, name text, stripe_price_id text, monthly_price_cents int);
+  alter table public.plans enable row level security;
+  create policy "plans are public" on public.plans for select using (true);
+
+  create table public.clients (id uuid primary key default gen_random_uuid(), org_id uuid not null references public.organizations, name text, email text);
+  create table public.invoices (id uuid primary key default gen_random_uuid(), org_id uuid not null references public.organizations, client_id uuid references public.clients, amount_cents int not null, status text not null default 'draft');
+  alter table public.clients enable row level security;
+  alter table public.invoices enable row level security;
+  create policy "members read clients" on public.clients for select to authenticated using (public.is_org_member(org_id));
+  create policy "members read invoices" on public.invoices for select to authenticated using (public.is_org_member(org_id));
+  create policy "edit invoices" on public.invoices for update to authenticated using (public.is_org_member(org_id)) with check (public.is_org_member(org_id));
+  create policy "create invoices" on public.invoices for insert to authenticated with check (public.is_org_admin(org_id));
+
+  create table public.audit_log (id bigserial primary key, org_id uuid, actor uuid, action text, at timestamptz default now());
+  alter table public.audit_log enable row level security;
+
+  create view public.org_directory with (security_invoker = true) as
+    select m.org_id, m.user_id, m.role from public.memberships m;
+
+  create table public.documents (id uuid primary key default gen_random_uuid(), org_id uuid not null references public.organizations, title text, body text);
+  create table public.share_links (token text primary key, document_id uuid references public.documents on delete cascade, expires_at timestamptz not null);
+  alter table public.documents enable row level security;
+  alter table public.share_links enable row level security;
+  create policy "members read documents" on public.documents for select to authenticated using (public.is_org_member(org_id));
+  create policy "admins manage share links" on public.share_links for all to authenticated
+    using (exists (select 1 from public.documents d where d.id = document_id and public.is_org_admin(d.org_id)));
+
+  create function public.get_shared_document(p_token text) returns table (title text, body text)
+  language sql stable security definer set search_path = '' as $$
+    select d.title, d.body from public.documents d join public.share_links s on s.document_id = d.id where s.token = p_token;
+  $$;
+  grant execute on function public.get_shared_document(text) to anon, authenticated;
+
+  insert into storage.buckets (id, name, public) values ('avatars', 'avatars', true);
+  insert into storage.buckets (id, name, public) values ('attachments', 'attachments', false);
+  create policy "members read attachments" on storage.objects for select to authenticated
+    using (bucket_id = 'attachments' and public.is_org_member(((storage.foldername(name))[1])::uuid));
+  create policy "upload attachments" on storage.objects for insert to authenticated
+    with check (bucket_id = 'attachments' and auth.role() = 'authenticated');
+
+supabase/functions/create-checkout/index.ts (pseudocode):
+  user = await supabase.auth.getUser(req.headers.authorization)
+  { orgId, priceId, plan } = await req.json()
+  if (!await isOrgAdmin(user.id, orgId)) return 403
+  session = stripe.checkout.sessions.create({ mode: 'subscription', line_items: [{ price: priceId, quantity: 1 }],
+    client_reference_id: orgId, metadata: { plan } })
+  return { url: session.url }
+
+supabase/functions/stripe-webhook/index.ts (pseudocode):
+  raw = await req.text()
+  event = stripe.webhooks.constructEvent(raw, req.headers['stripe-signature'], STRIPE_WEBHOOK_SECRET)   // throws on bad signature
+  if event.type == 'checkout.session.completed':
+    s = event.data.object
+    serviceRoleClient.from('organizations').update({ plan: s.metadata.plan }).eq('id', s.client_reference_id)
+  if event.type == 'customer.subscription.deleted':
+    serviceRoleClient.from('organizations').update({ plan: 'free' }).eq('stripe_customer', event.data.object.customer)
+
+app/lib/supabase.ts:
+  createClient(EXPO_PUBLIC_SUPABASE_URL, EXPO_PUBLIC_SUPABASE_ANON_KEY)
+
+app/screens/Upgrade.tsx:
+  plans = await supabase.from('plans').select()
+  onSelect(p) -> fetch(FUNCTIONS_URL + '/create-checkout', { headers: auth, body: { orgId, priceId: p.stripe_price_id, plan: p.id } })
+
+app/screens/Team.tsx:
+  if (myRole in ['owner', 'admin']) show "Invite" and "Edit invoice" buttons
+  acceptInvite(inv) -> supabase.from('memberships').insert({ org_id: inv.org_id, user_id: session.user.id, role: inv.role })

@@ -124,7 +124,7 @@ After editing runner source or schemas, run `npm run bundle`. Generated copies i
 
 `npm run check:docs` verifies local Markdown file links. `npm run test:python` covers installation and archive packaging; `npm run test:installer` runs only the installer cases. The maintainer packager selects Git-tracked files rather than arbitrary local files.
 
-Three manual evaluations check the agent's reasoning on fictional fixtures: [local-first](evals/local-first/request.md), [Supabase backend](evals/supabase-rls/request.md), and [false positives](evals/false-positives/request.md). They are not executable scanner tests; provide each rubric only after the agent produces an assessment.
+Five manual evaluations check the agent's reasoning on fictional fixtures: [local-first](evals/local-first/request.md), [Supabase backend](evals/supabase-rls/request.md), [false positives](evals/false-positives/request.md), and two harder cases with unlabelled defects and decoys, [multi-tenant Supabase](evals/supabase-orgs/request.md) and [Firebase marketplace](evals/firebase-marketplace/request.md). They are not executable scanner tests; provide each rubric only after the agent produces an assessment.
 
 ## What BreakALeg does not promise
 

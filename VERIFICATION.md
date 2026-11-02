@@ -41,6 +41,21 @@ Findings:
 - The skill run ran `rls-audit` on a reconstruction of the fixture. It missed the self-service `is_pro`/`coach_credits` update, the body-supplied `userId` in the coach function, and the credit race; the agent found them by reading.
 - Both Supabase runs also found real issues the rubric does not list: a non-atomic credit decrement, a caller-chosen model, and a webhook that never revokes Pro.
 
+### Harder evaluations
+
+Run on 2026-11-03 with the same method, against the working tree after commit `f8d93d2` (which added the new `rls-audit` leads). These fixtures have six unlabelled defects each, no comments pointing at them, and contract-matching decoys.
+
+| Case | Defects found (skill / baseline) | Decoys wrongly rated medium or high (skill / baseline) | Report discipline (skill / baseline) |
+| --- | --- | --- | --- |
+| Multi-tenant Supabase | 6/6 / 6/6 | 0 / 0 | Pass / Partial: no evidence labels |
+| Firebase marketplace | 6/6 / 6/6 | 0 / 0 | Pass / Partial: no evidence labels or not-applicable/skipped split |
+
+Findings:
+
+- Removing hint comments and adding decoys did not separate the two: Claude Opus 5.5 found every defect and rejected every decoy without the skill. On fixtures of about 110–140 lines this model's finding ability is not the bottleneck. To measure the skill's effect on finding, run these cases with a smaller model, or build larger fixtures where attention limits matter.
+- The skill again changed the report: launch priority, `source-supported` labels, coverage tables with not-applicable versus blocked, and helper-lead triage. In the multi-tenant case the skill run triaged all nine `rls-audit` leads (four real, five intended); the audit did not cover the member invoice edit or the missing share-link expiry check.
+- Both Firebase runs found further real issues in the payment flow (webhook state and amount checks, payout idempotency) and tutor self-rating. The rubric now lists them as valid extras.
+
 ## Earlier repository maintenance checks
 
 Verified locally on 2026-10-24 using Node 24.18.0 on macOS for the maintenance changes after the v0.1.2 tag.
