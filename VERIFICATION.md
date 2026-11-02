@@ -15,7 +15,31 @@ Verified locally on 2026-10-25 using Node 22.23.4 and Python 3 on Linux. Consult
 | `secrets` redaction | Tests assert no matched value appears in output; fixture keys are assembled at test time, not committed |
 | Claude Code installation | `install.py --agent claude` installed the complete skill into a temporary home's `.claude/skills` |
 
-The new Supabase and false-positive evaluations are added but have not been independently run with a coding agent. `rls-audit` was tested on synthetic migrations, not on a live Supabase project or real-world migration histories.
+`rls-audit` was tested on synthetic migrations, not on a live Supabase project or real-world migration histories.
+
+## Skill evaluations
+
+Run on 2026-11-03 against commit `f2be7c7` (v0.2.0 plus the backend-guide update). Each case ran in a fresh Claude Opus 5.5 subagent restricted to an isolated folder holding the request and `fixture.txt`, plus a copy of the skill for the "with skill" runs. Baseline runs got the same request without the words "Use BreakALeg" and no skill. Evaluators did not see the rubrics; the grader did. One run per cell, so treat differences as indicative.
+
+| Case | Rubric item | With skill | Baseline |
+| --- | --- | --- | --- |
+| Supabase | Issues 1–6 (journal RLS, coach function, webhook, self-service Pro/credits, public progress bucket, anonymous sign-ins) | 6/6 | 6/6 |
+| Supabase | Items 1–5 under a plain-language "Fix before launch" | Pass | Partial: all five ranked P0, no plain-language priority |
+| Supabase | `source-supported` labels; proposed tests marked unexecuted | Pass | Partial: tests marked not run; no evidence labels |
+| Supabase | No alarm on the anon key or `avatars` bucket | Pass | Pass |
+| Supabase | No finding on the public `profiles` select policy | Flagged as Low (exposes `is_pro`, `coach_credits`) | Flagged as P1 (same reason) |
+| Supabase | Deployed/dashboard state noted as unverified; no score, invented locations, or live probing | Pass | Pass |
+| False positives | No inflated finding for any of the six safe items; empty "Fix before launch" | Pass | Pass |
+| Local-first | Issues 1–4 (recovery disables lock, unknown settings fail open, dialog above lock, leftover provider credential) | 4/4 | 4/4 |
+| Local-first | Avoids the four listed false alarms; keeps the TODO assistant out | Pass | Pass |
+| Local-first | `source-supported` labels; backend `not-applicable` vs device `skipped`/`blocked` | Pass | Fail: no evidence labels or status split |
+
+Findings:
+
+- On these fixtures the model finds every expected issue without the skill. The skill's measurable effect is report discipline: evidence labels, launch priority, coverage tables, not-applicable versus blocked, and grant-default caveats. The fixtures mark their bugs with comments such as `-- RLS to be added later` and `// no Authorization header check`, so they do not separate finding ability.
+- Both Supabase runs flagged the public `profiles` select policy because the table also holds `is_pro` and `coach_credits`, which the contract does not make public. That reasoning is sound; the rubric should accept it as a low-severity item.
+- The skill run ran `rls-audit` on a reconstruction of the fixture. It missed the self-service `is_pro`/`coach_credits` update, the body-supplied `userId` in the coach function, and the credit race; the agent found them by reading.
+- Both Supabase runs also found real issues the rubric does not list: a non-atomic credit decrement, a caller-chosen model, and a webhook that never revokes Pro.
 
 ## Earlier repository maintenance checks
 
