@@ -4,6 +4,7 @@
 
 - Supabase guide: flag `user_metadata` in policies, and replace the outdated default-grant statement with Supabase's 2026 Data API grant change.
 - Firebase guide: flag test-mode expiry rules, Realtime Database cascading grants, and roles read from user-writable documents.
+- `rls-audit`: new leads for signed-in-only policies (`auth.uid() is not null`, `auth.role() = 'authenticated'`), policies reading `user_metadata`, and insert/update policies on tables with entitlement columns (`is_pro`, credits, role, plan) that no column grant restricts. `DROP POLICY` and `ALTER POLICY` are now replayed, so removed or tightened policies are no longer reported. Lead text no longer assumes Supabase's old default table grants.
 - Record the first agent runs of the Supabase, false-positive, and local-first evaluations, with and without the skill, in VERIFICATION.md.
 
 ## 0.2.0 — 2026-10-25

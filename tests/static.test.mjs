@@ -28,21 +28,40 @@ test('rls-audit replays migrations and reports each vulnerable pattern', async (
     'email-confirmation-disabled:auth.email',
     'function-jwt-verification-disabled:functions.ai-chat',
     'policy-allows-all-rows:public.profiles',
+    'policy-allows-any-signed-in-user:public.teams',
+    'policy-uses-user-metadata:public.teams',
     'public-storage-bucket:storage.buckets/documents',
     'security-definer-function:public.add_credits',
     'storage-policy-without-identity:storage.objects',
     'table-without-rls:public.drafts',
     'table-without-rls:public.notes',
+    'user-writable-privileged-columns:public.profiles',
     'view-bypasses-rls:public.note_titles'
   ]);
   const notes = r.projects[0].leads.find(l => l.object === 'public.notes');
   assert.equal(notes.line, 7);
   assert.match(notes.file, /20260101000000_init\.sql$/);
+  const columns = r.projects[0].leads.find(l => l.kind === 'user-writable-privileged-columns');
+  assert.match(columns.detail, /is_pro/);
+  assert.doesNotMatch(columns.detail, /display_name/);
 });
-test('rls-audit secure counterpart has no leads (renames, drops, invoker views, revoked definers)', async () => {
+test('rls-audit secure counterpart has no leads (renames, drops, invoker views, revoked definers, column grants)', async () => {
   const r = await rlsAudit('tests/fixtures/rls/secure');
   assert.deepEqual(r.projects[0].leads, []);
-  assert.equal(r.projects[0].tablesTracked, 2);
+  assert.equal(r.projects[0].tablesTracked, 3);
+});
+test('rls-audit flags the eval fixture\'s self-service credits without a column restriction', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'bal-rls-')); t.after(() => rm(dir, { recursive: true, force: true }));
+  await mkdir(join(dir, 'supabase', 'migrations'), { recursive: true });
+  await writeFile(join(dir, 'supabase', 'migrations', '1.sql'), [
+    'create table public.profiles (id uuid primary key references auth.users, display_name text, "isPro" boolean, coach_credits int default 3, check (coach_credits >= 0));',
+    'alter table public.profiles enable row level security;',
+    'create policy "own profile update" on public.profiles for update using (auth.uid() = id);',
+    'create policy "staff only" on public.profiles for update to service_role using (true);'
+  ].join('\n'));
+  const lead = (await rlsAudit(dir)).projects[0].leads.find(l => l.kind === 'user-writable-privileged-columns');
+  assert.equal(lead.line, 3);
+  assert.match(lead.detail, /to public .*isPro, coach_credits/);
 });
 test('rls-audit honors custom exposed schemas and finds nested supabase folders', async t => {
   const dir = await mkdtemp(join(tmpdir(), 'bal-rls-')); t.after(() => rm(dir, { recursive: true, force: true }));

@@ -10,7 +10,7 @@
 | Custom REST API reads | Generic bounded runner | Bearer sessions, trusted identity endpoint, JSON private marker |
 | Ownership authorization reads | Automated runtime probe | Owner baseline and two distinct identities |
 | Stack and check discovery | Offline helper: stacks plus suggested check guides from dependencies | Hints only; confirm actual reachable code |
-| Supabase migrations and config.toml | Offline `rls-audit` helper: tables without RLS, permissive policies, RLS-bypassing views, exposed security-definer functions, public buckets, functions without JWT verification, anonymous sign-ins | Leads only; dashboard changes and uncommitted migrations are invisible |
+| Supabase migrations and config.toml | Offline `rls-audit` helper: tables without RLS, permissive and signed-in-only policies, policies reading `user_metadata`, user-writable entitlement columns without column grants, RLS-bypassing views, exposed security-definer functions, public buckets, functions without JWT verification, anonymous sign-ins | Leads only; dashboard changes, uncommitted migrations, table grants, triggers, and Edge Function code are not analyzed |
 | Credentials in files | Offline `secrets` helper reporting type and location, never values | Pattern-based; validity, Git history, and release inclusion are not checked |
 | Cookie-session custom APIs | Runner `accounts.cookieName` option for the same read probe | Same requirements as bearer sessions |
 | Secret/storage/validation/entitlement checks | Agent-guided source analysis and project tests | No claim of automatic exhaustive scanning |

@@ -88,11 +88,73 @@ const patterns = {
   createTable: re('^create\\s+(?:(?:global|local)\\s+)?(?:(?:temp|temporary|unlogged)\\s+)?table\\s+(?:if\\s+not\\s+exists\\s+)?IDENT'),
   rls: re('^alter\\s+table\\s+(?:if\\s+exists\\s+)?(?:only\\s+)?IDENT\\s+(enable|disable)\\s+row\\s+level\\s+security'),
   rename: re('^alter\\s+table\\s+(?:if\\s+exists\\s+)?(?:only\\s+)?IDENT\\s+rename\\s+to\\s+((?:"[^"]+"|[\\w$]+))'),
+  addColumn: re('^alter\\s+table\\s+(?:if\\s+exists\\s+)?(?:only\\s+)?IDENT\\s+add\\s+(?:column\\s+)?(?:if\\s+not\\s+exists\\s+)?((?:"[^"]+"|[\\w$]+))'),
   dropTable: re('^drop\\s+table\\s+(?:if\\s+exists\\s+)?(.+?)(?:\\s+(?:cascade|restrict))?$'),
-  policy: re('^create\\s+policy\\s+(?:"[^"]+"|[\\w$]+)\\s+on\\s+IDENT'),
+  policy: re('^create\\s+policy\\s+("[^"]+"|[\\w$]+)\\s+on\\s+IDENT'),
+  alterPolicy: re('^alter\\s+policy\\s+("[^"]+"|[\\w$]+)\\s+on\\s+IDENT'),
+  dropPolicy: re('^drop\\s+policy\\s+(?:if\\s+exists\\s+)?("[^"]+"|[\\w$]+)\\s+on\\s+IDENT'),
+  columnPrivilege: re('^(?:grant\\s+(?:insert|update)\\s*\\(|revoke\\s+(?:all|insert|update)\\b).*?\\bon\\s+(?:table\\s+)?IDENT'),
   view: re('^create\\s+(?:or\\s+replace\\s+)?(materialized\\s+)?view\\s+(?:if\\s+not\\s+exists\\s+)?IDENT'),
   func: re('^create\\s+(?:or\\s+replace\\s+)?function\\s+IDENT')
 };
+
+// Text inside the parentheses that open at `open`, honoring nesting.
+function balanced(text: string, open: number): string | undefined {
+  let depth = 0;
+  for (let i = open; i < text.length; i++) {
+    if (text[i] === '(') depth++;
+    else if (text[i] === ')' && --depth === 0) return text.slice(open + 1, i);
+  }
+  return undefined;
+}
+
+// Column names from a CREATE TABLE column list, skipping table-level constraints.
+function columnsOf(list: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let i = 0; i < list.length; i++) {
+    if (list[i] === '(') depth++;
+    else if (list[i] === ')') depth--;
+    else if (list[i] === ',' && depth === 0) { parts.push(list.slice(start, i)); start = i + 1; }
+  }
+  parts.push(list.slice(start));
+  return parts.map(p => p.trim().split(/\s+/)[0]?.replace(/"/g, '') ?? '')
+    .filter(name => name && !/^(constraint|primary|foreign|unique|check|exclude|like)$/i.test(name));
+}
+
+// Column names that usually carry privileges or money: is_pro, coach_credits, role, plan, ...
+const privilegedWords = new Set(['admin', 'pro', 'premium', 'paid', 'subscribed', 'vip', 'verified', 'role', 'roles', 'credit', 'credits', 'balance', 'plan', 'tier', 'subscription', 'entitlement', 'entitlements', 'quota', 'permission', 'permissions']);
+const privileged = (column: string) => column.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase().split('_').some(word => privilegedWords.has(word));
+
+// Row filters that every signed-in caller satisfies, after removing spaces, parentheses, and `select`.
+// Anonymous sign-ins also get the authenticated role, so these are as open as the policy's roles.
+const anySignedIn = new Set(['auth.uidisnotnull', "auth.role='authenticated'", "auth.jwt->>'role'='authenticated'"]);
+
+// Leads from one policy's text. Called again when ALTER POLICY changes the expressions.
+function policyLeads(flat: string, target: string, command: string, roles: string, where: { file: string; line: number }): RlsLead[] {
+  const leads: RlsLead[] = [];
+  const exprs = [/\busing\s*\(/i, /\bwith\s+check\s*\(/i]
+    .map(keyword => { const m = keyword.exec(flat); return m ? balanced(flat, m.index + m[0].length - 1) : undefined; })
+    .filter((e): e is string => e !== undefined)
+    .map(e => e.toLowerCase().replace(/\bselect\b/g, '').replace(/[\s()]/g, ''));
+  // `using (true)` / `with check (true)` means every row, for every role the policy names.
+  if (exprs.includes('true')) {
+    leads.push({ kind: 'policy-allows-all-rows', object: target, ...where, detail: `Policy for ${command} to ${roles} matches every row. Fine for truly public data; a leak if rows are private or per-user.` });
+  } else if (exprs.some(e => anySignedIn.has(e))) {
+    leads.push({ kind: 'policy-allows-any-signed-in-user', object: target, ...where, detail: `Policy for ${command} to ${roles} only checks that a user is signed in, so every user (including anonymous sign-ins) matches every row. A leak if rows are per-user or per-team.` });
+  } else if (target === 'storage.objects' && !/\bauth\.(uid|jwt|role)\s*\(/i.test(flat)) {
+    // Storage policies that only check bucket_id let any caller in `roles` reach every file.
+    leads.push({ kind: 'storage-policy-without-identity', object: target, ...where, detail: `Storage policy for ${command} to ${roles} does not reference auth.uid()/auth.jwt(). Check whether files in that bucket are meant to be per-user.` });
+  }
+  if (/\b(?:raw_user_meta_data|user_metadata)\b/i.test(flat)) {
+    leads.push({ kind: 'policy-uses-user-metadata', object: target, ...where, detail: 'Policy reads user_metadata, which signed-in users can change about themselves. Roles, tenants, or plans used for access must come from app_metadata or a table users cannot write.' });
+  }
+  return leads;
+}
+
+// Policy names are case-sensitive only when quoted, as in Postgres.
+const policyName = (raw: string) => raw.startsWith('"') ? raw.slice(1, -1) : raw.toLowerCase();
 
 // Minimal TOML reader for supabase/config.toml: returns "section.key" → raw value.
 // It only needs flat keys and simple arrays, which is all Supabase's config uses here.
@@ -139,8 +201,12 @@ async function auditProject(dir: string, base: string) {
       for (const name of names) sqlFiles.push(join(dir, sub, name));
     } catch { /* folder absent */ }
   }
-  // Final state of each table: where it was created and whether RLS is currently enabled.
-  const tables = new Map<string, { file: string; line: number; rls: boolean }>();
+  // Final state of each table: where it was created, its columns, and whether RLS is currently enabled.
+  const tables = new Map<string, { file: string; line: number; rls: boolean; columns: string[] }>();
+  // Policies by "table|name", so a later DROP or ALTER POLICY replaces what an earlier migration said.
+  const policies = new Map<string, { table: string; command: string; roles: string; file: string; line: number; leads: RlsLead[] }>();
+  // shortcut: any column-level grant or broad revoke marks the whole table restricted; per-column tracking would be exact.
+  const columnRestricted = new Set<string>();
   const definerFunctions = new Map<string, { file: string; line: number; searchPath: boolean }>();
   const revoked = new Set<string>();
   for (const file of sqlFiles) {
@@ -150,30 +216,46 @@ async function auditProject(dir: string, base: string) {
       const where = { file: rel(file), line };
       let m: RegExpExecArray | null;
       if ((m = patterns.createTable.exec(flat))) {
-        // Supabase grants table access to anon/authenticated by default, so a new table is
-        // reachable through the REST API until RLS is enabled.
-        if (!/^create\s+(?:(?:global|local)\s+)?(?:temp|temporary)/i.test(flat)) tables.set(qualify(m[1]), { ...where, rls: false });
+        // Older Supabase projects grant new public tables to anon/authenticated automatically, so
+        // a table is reachable through the REST API until RLS is enabled. Newer ones need explicit grants.
+        const list = /^\s*\(/.test(flat.slice(m[0].length)) ? balanced(flat, flat.indexOf('(', m[0].length)) : undefined;
+        if (!/^create\s+(?:(?:global|local)\s+)?(?:temp|temporary)/i.test(flat)) tables.set(qualify(m[1]), { ...where, rls: false, columns: list ? columnsOf(list) : [] });
       } else if ((m = patterns.rls.exec(flat))) {
         const table = tables.get(qualify(m[1]));
         if (table) table.rls = m[2].toLowerCase() === 'enable';
-        else tables.set(qualify(m[1]), { ...where, rls: m[2].toLowerCase() === 'enable' });
+        else tables.set(qualify(m[1]), { ...where, rls: m[2].toLowerCase() === 'enable', columns: [] });
       } else if ((m = patterns.rename.exec(flat))) {
         const from = qualify(m[1]);
+        const to = `${from.split('.')[0]}.${m[2].replace(/"/g, '').toLowerCase()}`;
         const table = tables.get(from);
-        if (table) { tables.delete(from); tables.set(`${from.split('.')[0]}.${m[2].replace(/"/g, '').toLowerCase()}`, table); }
+        if (table) { tables.delete(from); tables.set(to, table); }
+        for (const [key, policy] of policies) {
+          if (policy.table === from) { policies.delete(key); policy.table = to; policies.set(`${to}|${key.split('|')[1]}`, policy); }
+        }
+      } else if ((m = patterns.addColumn.exec(flat))) {
+        const name = m[2].replace(/"/g, '');
+        if (!/^constraint$/i.test(name)) tables.get(qualify(m[1]))?.columns.push(name);
       } else if ((m = patterns.dropTable.exec(flat))) {
-        for (const name of m[1].split(',')) tables.delete(qualify(name.trim()));
+        for (const raw of m[1].split(',')) {
+          const name = qualify(raw.trim());
+          tables.delete(name);
+          for (const [key, policy] of policies) if (policy.table === name) policies.delete(key);
+        }
       } else if ((m = patterns.policy.exec(flat))) {
-        const target = qualify(m[1]);
+        const target = qualify(m[2]);
         const roles = /\bto\s+(.+?)(?:\s+using\b|\s+with\s+check\b|$)/i.exec(flat)?.[1]?.trim().toLowerCase() ?? 'public';
         const command = /\bfor\s+(all|select|insert|update|delete)\b/i.exec(flat)?.[1]?.toLowerCase() ?? 'all';
-        // `using (true)` / `with check (true)` means every row, for every role the policy names.
-        if (/\busing\s*\(\s*true\s*\)/i.test(flat) || /\bwith\s+check\s*\(\s*true\s*\)/i.test(flat)) {
-          leads.push({ kind: 'policy-allows-all-rows', object: target, ...where, detail: `Policy for ${command} to ${roles} matches every row. Fine for truly public data; a leak if rows are private or per-user.` });
-        } else if (target === 'storage.objects' && !/\bauth\.(uid|jwt|role)\s*\(/i.test(flat)) {
-          // Storage policies that only check bucket_id let any caller in `roles` reach every file.
-          leads.push({ kind: 'storage-policy-without-identity', object: target, ...where, detail: `Storage policy for ${command} to ${roles} does not reference auth.uid()/auth.jwt(). Check whether files in that bucket are meant to be per-user.` });
+        policies.set(`${target}|${policyName(m[1])}`, { table: target, command, roles, ...where, leads: policyLeads(flat, target, command, roles, where) });
+      } else if ((m = patterns.alterPolicy.exec(flat))) {
+        const target = qualify(m[2]);
+        const policy = policies.get(`${target}|${policyName(m[1])}`);
+        // ALTER POLICY ... RENAME is not followed; a renamed policy keeps its old key.
+        if (policy && /\b(?:using|with\s+check)\s*\(/i.test(flat)) {
+          policy.roles = /\bto\s+(.+?)(?:\s+using\b|\s+with\s+check\b|$)/i.exec(flat)?.[1]?.trim().toLowerCase() ?? policy.roles;
+          Object.assign(policy, where, { leads: policyLeads(flat, target, policy.command, policy.roles, where) });
         }
+      } else if ((m = patterns.dropPolicy.exec(flat))) {
+        policies.delete(`${qualify(m[2])}|${policyName(m[1])}`);
       } else if ((m = patterns.view.exec(flat))) {
         const view = qualify(m[2]);
         // Views run with their owner's privileges unless security_invoker is set, so they can
@@ -186,6 +268,8 @@ async function auditProject(dir: string, base: string) {
       } else if (/^revoke\s+(?:all|execute)\b.*\bon\s+function\s+/i.test(flat)) {
         const fn = /\bon\s+function\s+((?:"[^"]+"|[\w$]+)(?:\.(?:"[^"]+"|[\w$]+))?)/i.exec(flat);
         if (fn) revoked.add(qualify(fn[1]));
+      } else if ((m = patterns.columnPrivilege.exec(flat))) {
+        columnRestricted.add(qualify(m[1]));
       } else if (/^insert\s+into\s+storage\.buckets\b/i.test(flat)) {
         // Map the column list onto the first VALUES tuple to read the bucket's `public` flag.
         const cols = /storage\.buckets\s*\(([^)]*)\)/i.exec(flat)?.[1].split(',').map(c => c.trim().replace(/"/g, '').toLowerCase());
@@ -199,7 +283,19 @@ async function auditProject(dir: string, base: string) {
   }
   // After replaying everything, any exposed-schema table still without RLS is a lead.
   for (const [name, table] of tables) {
-    if (!table.rls && exposedSchemas.includes(name.split('.')[0])) leads.push({ kind: 'table-without-rls', object: name, file: table.file, line: table.line, detail: 'No enable row level security found after replaying all migrations. Through the Data API, anon and authenticated callers may read or write every row unless grants were revoked.' });
+    if (!table.rls && exposedSchemas.includes(name.split('.')[0])) leads.push({ kind: 'table-without-rls', object: name, file: table.file, line: table.line, detail: 'No enable row level security found after replaying all migrations. Any role with a table grant can read or write every row through the Data API. Older projects grant anon and authenticated automatically; newer projects need explicit grants, so check both. A missing grant is not a substitute for RLS.' });
+  }
+  // Surviving policies keep their leads. A policy letting users write their own rows is also a lead
+  // when the table holds privilege or money columns and no column grant limits what they can set.
+  const flagged = new Set<string>();
+  for (const policy of policies.values()) {
+    leads.push(...policy.leads);
+    const table = tables.get(policy.table);
+    const risky = table?.columns.filter(privileged) ?? [];
+    if (!table?.rls || !risky.length || flagged.has(policy.table) || columnRestricted.has(policy.table)) continue;
+    if (!['all', 'insert', 'update'].includes(policy.command) || policy.roles === 'service_role' || !exposedSchemas.includes(policy.table.split('.')[0])) continue;
+    flagged.add(policy.table);
+    leads.push({ kind: 'user-writable-privileged-columns', object: policy.table, file: policy.file, line: policy.line, detail: `Policy for ${policy.command} to ${policy.roles} lets callers write rows, and no column grant limits what they set: ${risky.join(', ')}. RLS limits rows, not columns, so a user could grant themselves these values unless a trigger blocks it.` });
   }
   for (const [name, fn] of definerFunctions) {
     if (!exposedSchemas.includes(name.split('.')[0])) continue;
