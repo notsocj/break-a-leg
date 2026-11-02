@@ -143,14 +143,30 @@ function policyLeads(flat: string, target: string, command: string, roles: strin
     leads.push({ kind: 'policy-allows-all-rows', object: target, ...where, detail: `Policy for ${command} to ${roles} matches every row. Fine for truly public data; a leak if rows are private or per-user.` });
   } else if (exprs.some(e => anySignedIn.has(e))) {
     leads.push({ kind: 'policy-allows-any-signed-in-user', object: target, ...where, detail: `Policy for ${command} to ${roles} only checks that a user is signed in, so every user (including anonymous sign-ins) matches every row. A leak if rows are per-user or per-team.` });
-  } else if (target === 'storage.objects' && !/\bauth\.(uid|jwt|role)\s*\(/i.test(flat)) {
-    // Storage policies that only check bucket_id let any caller in `roles` reach every file.
-    leads.push({ kind: 'storage-policy-without-identity', object: target, ...where, detail: `Storage policy for ${command} to ${roles} does not reference auth.uid()/auth.jwt(). Check whether files in that bucket are meant to be per-user.` });
+  } else if (target === 'storage.objects' && !storageIdentity(flat)) {
+    // Storage policies that only check bucket_id (or only that someone is signed in) let any caller in `roles` reach every file.
+    leads.push({ kind: 'storage-policy-without-identity', object: target, ...where, detail: `Storage policy for ${command} to ${roles} does not tie files to the caller: no auth.uid()/auth.jwt() or membership helper beyond a signed-in check. Check whether files in that bucket are meant to be per-user or per-team.` });
   }
   if (/\b(?:raw_user_meta_data|user_metadata)\b/i.test(flat)) {
     leads.push({ kind: 'policy-uses-user-metadata', object: target, ...where, detail: 'Policy reads user_metadata, which signed-in users can change about themselves. Roles, tenants, or plans used for access must come from app_metadata or a table users cannot write.' });
   }
   return leads;
+}
+
+// Whether a storage policy ties files to the caller: an auth.uid()/auth.jwt() reference, or a helper such as
+// is_org_member(...) / has_access(...) that checks membership itself. `auth.role() = 'authenticated'` only
+// proves someone is signed in, so it does not count.
+function storageIdentity(flat: string): boolean {
+  const text = flat.replace(/\bauth\.role\s*\(\s*\)\s*=\s*'authenticated'/gi, '');
+  return /\bauth\.(uid|jwt|role)\s*\(/i.test(text) || /\b(?:\w+\.)?(?:is|has|can)_\w+\s*\(/i.test(text);
+}
+
+// Whether a policy's row filter mentions an admin check, such as is_org_admin(...) or role = 'admin'.
+// Only the expressions count, so a policy named "admins ..." is not mistaken for one.
+// shortcut: a name match, not proof the check works; a spoofable admin check still gets its own lead (user_metadata).
+function adminGated(flat: string): boolean {
+  const start = flat.search(/\b(?:using|with\s+check)\s*\(/i);
+  return start >= 0 && /admin/i.test(flat.slice(start));
 }
 
 // Policy names are case-sensitive only when quoted, as in Postgres.
@@ -204,7 +220,7 @@ async function auditProject(dir: string, base: string) {
   // Final state of each table: where it was created, its columns, and whether RLS is currently enabled.
   const tables = new Map<string, { file: string; line: number; rls: boolean; columns: string[] }>();
   // Policies by "table|name", so a later DROP or ALTER POLICY replaces what an earlier migration said.
-  const policies = new Map<string, { table: string; command: string; roles: string; file: string; line: number; leads: RlsLead[] }>();
+  const policies = new Map<string, { table: string; command: string; roles: string; adminGated: boolean; file: string; line: number; leads: RlsLead[] }>();
   // shortcut: any column-level grant or broad revoke marks the whole table restricted; per-column tracking would be exact.
   const columnRestricted = new Set<string>();
   const definerFunctions = new Map<string, { file: string; line: number; searchPath: boolean }>();
@@ -245,14 +261,14 @@ async function auditProject(dir: string, base: string) {
         const target = qualify(m[2]);
         const roles = /\bto\s+(.+?)(?:\s+using\b|\s+with\s+check\b|$)/i.exec(flat)?.[1]?.trim().toLowerCase() ?? 'public';
         const command = /\bfor\s+(all|select|insert|update|delete)\b/i.exec(flat)?.[1]?.toLowerCase() ?? 'all';
-        policies.set(`${target}|${policyName(m[1])}`, { table: target, command, roles, ...where, leads: policyLeads(flat, target, command, roles, where) });
+        policies.set(`${target}|${policyName(m[1])}`, { table: target, command, roles, adminGated: adminGated(flat), ...where, leads: policyLeads(flat, target, command, roles, where) });
       } else if ((m = patterns.alterPolicy.exec(flat))) {
         const target = qualify(m[2]);
         const policy = policies.get(`${target}|${policyName(m[1])}`);
         // ALTER POLICY ... RENAME is not followed; a renamed policy keeps its old key.
         if (policy && /\b(?:using|with\s+check)\s*\(/i.test(flat)) {
           policy.roles = /\bto\s+(.+?)(?:\s+using\b|\s+with\s+check\b|$)/i.exec(flat)?.[1]?.trim().toLowerCase() ?? policy.roles;
-          Object.assign(policy, where, { leads: policyLeads(flat, target, policy.command, policy.roles, where) });
+          Object.assign(policy, where, { adminGated: adminGated(flat), leads: policyLeads(flat, target, policy.command, policy.roles, where) });
         }
       } else if ((m = patterns.dropPolicy.exec(flat))) {
         policies.delete(`${qualify(m[2])}|${policyName(m[1])}`);
@@ -292,7 +308,7 @@ async function auditProject(dir: string, base: string) {
     leads.push(...policy.leads);
     const table = tables.get(policy.table);
     const risky = table?.columns.filter(privileged) ?? [];
-    if (!table?.rls || !risky.length || flagged.has(policy.table) || columnRestricted.has(policy.table)) continue;
+    if (!table?.rls || !risky.length || flagged.has(policy.table) || columnRestricted.has(policy.table) || policy.adminGated) continue;
     if (!['all', 'insert', 'update'].includes(policy.command) || policy.roles === 'service_role' || !exposedSchemas.includes(policy.table.split('.')[0])) continue;
     flagged.add(policy.table);
     leads.push({ kind: 'user-writable-privileged-columns', object: policy.table, file: policy.file, line: policy.line, detail: `Policy for ${policy.command} to ${policy.roles} lets callers write rows, and no column grant limits what they set: ${risky.join(', ')}. RLS limits rows, not columns, so a user could grant themselves these values unless a trigger blocks it.` });

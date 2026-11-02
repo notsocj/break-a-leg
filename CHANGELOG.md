@@ -6,6 +6,7 @@
 - Firebase guide: flag test-mode expiry rules, Realtime Database cascading grants, and roles read from user-writable documents.
 - `rls-audit`: new leads for signed-in-only policies (`auth.uid() is not null`, `auth.role() = 'authenticated'`), policies reading `user_metadata`, and insert/update policies on tables with entitlement columns (`is_pro`, credits, role, plan) that no column grant restricts. `DROP POLICY` and `ALTER POLICY` are now replayed, so removed or tightened policies are no longer reported. Lead text no longer assumes Supabase's old default table grants.
 - Add two harder manual evaluations, multi-tenant Supabase and Firebase marketplace, each with six unlabelled defects and contract-matching decoys. The Supabase backend rubric now accepts noting that public profiles expose entitlement columns, at low severity.
+- `rls-audit`: skip the writable-entitlement-columns lead when the write policy is admin-gated (for example `is_org_admin(...)`), and accept membership helpers such as `is_org_member(...)` as an identity check in storage policies. A storage policy whose only identity check is `auth.role() = 'authenticated'` is now reported.
 - Record Claude Haiku 5.5 runs of four evaluations with and without the skill.
 - Record the first agent runs of the Supabase, false-positive, and local-first evaluations, with and without the skill, in VERIFICATION.md.
 

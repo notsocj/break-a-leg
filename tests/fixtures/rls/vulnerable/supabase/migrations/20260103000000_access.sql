@@ -10,3 +10,6 @@ create policy "admins manage teams" on public.teams for all to authenticated usi
 -- A dropped policy must not be reported.
 create policy "temporary open" on public.teams for select using (true);
 drop policy "temporary open" on public.teams;
+
+-- Uploads that only check the caller is signed in can land in any team's folder.
+create policy "upload team files" on storage.objects for insert to authenticated with check (bucket_id = 'team-files' and auth.role() = 'authenticated');

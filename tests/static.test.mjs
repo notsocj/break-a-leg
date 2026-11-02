@@ -33,6 +33,7 @@ test('rls-audit replays migrations and reports each vulnerable pattern', async (
     'public-storage-bucket:storage.buckets/documents',
     'security-definer-function:public.add_credits',
     'storage-policy-without-identity:storage.objects',
+    'storage-policy-without-identity:storage.objects',
     'table-without-rls:public.drafts',
     'table-without-rls:public.notes',
     'user-writable-privileged-columns:public.profiles',
@@ -45,10 +46,10 @@ test('rls-audit replays migrations and reports each vulnerable pattern', async (
   assert.match(columns.detail, /is_pro/);
   assert.doesNotMatch(columns.detail, /display_name/);
 });
-test('rls-audit secure counterpart has no leads (renames, drops, invoker views, revoked definers, column grants)', async () => {
+test('rls-audit secure counterpart has no leads (renames, drops, invoker views, revoked definers, column grants, admin gates, membership helpers)', async () => {
   const r = await rlsAudit('tests/fixtures/rls/secure');
   assert.deepEqual(r.projects[0].leads, []);
-  assert.equal(r.projects[0].tablesTracked, 3);
+  assert.equal(r.projects[0].tablesTracked, 4);
 });
 test('rls-audit flags the eval fixture\'s self-service credits without a column restriction', async t => {
   const dir = await mkdtemp(join(tmpdir(), 'bal-rls-')); t.after(() => rm(dir, { recursive: true, force: true }));
