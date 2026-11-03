@@ -49,7 +49,13 @@ Open a new Codex or Claude Code session in your app repository if the installed 
 
 ## 3. Run your first review
 
-In your app's coding-agent chat, use this request:
+In your app's coding-agent chat, the short version works:
+
+```text
+Is my app safe to launch?
+```
+
+For more control, use this longer request, which spells out what the review should deliver:
 
 ```text
 Use $break-a-leg to review this mobile app and any backend code available in the workspace. Begin with source analysis. Identify the implemented sensitive workflows, prioritize concrete security issues, and use isolated project tests with synthetic data where they can verify a hypothesis. Staging is optional. Before sending target requests, resolve the exact environment and any missing scope or test-account facts. Keep application code unchanged during the review. Save findings privately, distinguish source evidence from executed tests, and list missing device/backend coverage. Include impact, source locations, reproduction steps, remediation, and a proposed retest for each finding.

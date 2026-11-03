@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="216" viewBox="0 0 920 216" role="img" aria-label="Where launch bugs hide: database rules, leaked keys, paid features, server endpoints, sign-in, abuse and AI" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<title>Where launch bugs hide: database rules, leaked keys, paid features, server endpoints, sign-in, abuse and AI</title>
+<rect x="16.0" y="16" width="284" height="84" rx="12" fill="#f6f8fa" stroke="#d1d9e0"/>
+<rect x="16.0" y="36" width="4" height="44" rx="2" fill="#cf3a33"/>
+<text x="38.0" y="52" font-size="16" font-weight="700" fill="#1f2328">Database rules</text>
+<text x="38.0" y="76" font-size="13" fill="#59636e">Can users read each other&#x27;s data?</text>
+<rect x="318.0" y="16" width="284" height="84" rx="12" fill="#f6f8fa" stroke="#d1d9e0"/>
+<rect x="318.0" y="36" width="4" height="44" rx="2" fill="#cf3a33"/>
+<text x="340.0" y="52" font-size="16" font-weight="700" fill="#1f2328">Leaked keys</text>
+<text x="340.0" y="76" font-size="13" fill="#59636e">Is a secret key shipped in the app?</text>
+<rect x="620.0" y="16" width="284" height="84" rx="12" fill="#f6f8fa" stroke="#d1d9e0"/>
+<rect x="620.0" y="36" width="4" height="44" rx="2" fill="#cf3a33"/>
+<text x="642.0" y="52" font-size="16" font-weight="700" fill="#1f2328">Paid features</text>
+<text x="642.0" y="76" font-size="13" fill="#59636e">Can someone get Pro for free?</text>
+<rect x="16.0" y="116" width="284" height="84" rx="12" fill="#f6f8fa" stroke="#d1d9e0"/>
+<rect x="16.0" y="136" width="4" height="44" rx="2" fill="#cf3a33"/>
+<text x="38.0" y="152" font-size="16" font-weight="700" fill="#1f2328">Server endpoints</text>
+<text x="38.0" y="176" font-size="13" fill="#59636e">Do functions check who&#x27;s calling?</text>
+<rect x="318.0" y="116" width="284" height="84" rx="12" fill="#f6f8fa" stroke="#d1d9e0"/>
+<rect x="318.0" y="136" width="4" height="44" rx="2" fill="#cf3a33"/>
+<text x="340.0" y="152" font-size="16" font-weight="700" fill="#1f2328">Sign-in</text>
+<text x="340.0" y="176" font-size="13" fill="#59636e">Can a link or guest login be abused?</text>
+<rect x="620.0" y="116" width="284" height="84" rx="12" fill="#f6f8fa" stroke="#d1d9e0"/>
+<rect x="620.0" y="136" width="4" height="44" rx="2" fill="#cf3a33"/>
+<text x="642.0" y="152" font-size="16" font-weight="700" fill="#1f2328">Abuse and AI</text>
+<text x="642.0" y="176" font-size="13" fill="#59636e">Can bots run up your AI or SMS bill?</text>
+</svg>

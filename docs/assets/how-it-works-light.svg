@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="164" viewBox="0 0 920 164" role="img" aria-label="How BreakALeg works: scan, trace, verify, report" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+<title>How BreakALeg works: scan, trace, verify, report</title>
+<rect x="0.0" y="16" width="200" height="132" rx="12" fill="#f6f8fa" stroke="#d1d9e0"/>
+<circle cx="30.0" cy="50" r="14" fill="#cf3a33"/>
+<text x="30.0" y="55" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">1</text>
+<text x="54.0" y="56" font-size="18" font-weight="700" fill="#1f2328">Scan</text>
+<text x="18.0" y="96" font-size="13" fill="#59636e">Offline helpers map your</text>
+<text x="18.0" y="116" font-size="13" fill="#59636e">stack, keys, rules, limits</text>
+<path d="M208.0 82.0 h22" stroke="#59636e" stroke-width="1.5"/>
+<path d="M226.0 77.0 l6 5 l-6 5" fill="none" stroke="#59636e" stroke-width="1.5"/>
+<rect x="240.0" y="16" width="200" height="132" rx="12" fill="#f6f8fa" stroke="#d1d9e0"/>
+<circle cx="270.0" cy="50" r="14" fill="#cf3a33"/>
+<text x="270.0" y="55" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">2</text>
+<text x="294.0" y="56" font-size="18" font-weight="700" fill="#1f2328">Trace</text>
+<text x="258.0" y="96" font-size="13" fill="#59636e">Your agent follows each</text>
+<text x="258.0" y="116" font-size="13" fill="#59636e">lead from app to database</text>
+<path d="M448.0 82.0 h22" stroke="#59636e" stroke-width="1.5"/>
+<path d="M466.0 77.0 l6 5 l-6 5" fill="none" stroke="#59636e" stroke-width="1.5"/>
+<rect x="480.0" y="16" width="200" height="132" rx="12" fill="#f6f8fa" stroke="#d1d9e0"/>
+<circle cx="510.0" cy="50" r="14" fill="#cf3a33"/>
+<text x="510.0" y="55" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">3</text>
+<text x="534.0" y="56" font-size="18" font-weight="700" fill="#1f2328">Verify</text>
+<text x="498.0" y="96" font-size="13" fill="#59636e">Optional safe checks on</text>
+<text x="498.0" y="116" font-size="13" fill="#59636e">local or staging only</text>
+<path d="M688.0 82.0 h22" stroke="#59636e" stroke-width="1.5"/>
+<path d="M706.0 77.0 l6 5 l-6 5" fill="none" stroke="#59636e" stroke-width="1.5"/>
+<rect x="720.0" y="16" width="200" height="132" rx="12" fill="#fbe9e7" stroke="#cf3a33"/>
+<circle cx="750.0" cy="50" r="14" fill="#cf3a33"/>
+<text x="750.0" y="55" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">4</text>
+<text x="774.0" y="56" font-size="18" font-weight="700" fill="#1f2328">Report</text>
+<text x="738.0" y="96" font-size="13" fill="#59636e">Ranked by what to fix</text>
+<text x="738.0" y="116" font-size="13" fill="#59636e">before launch</text>
+</svg>

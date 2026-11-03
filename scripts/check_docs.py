@@ -15,8 +15,10 @@ def main():
     checked = 0
     for path in sorted(set(paths)):
         source = re.sub(r'^```[^\n]*\n.*?^```\s*$', '', path.read_text(), flags=re.M | re.S)
-        for match in re.finditer(r'!?\[[^\]]*\]\((<[^>]+>|[^\s)]+)(?:\s+"[^"]*")?\)', source):
-            target = match.group(1).strip('<>')
+        # Markdown links/images, plus HTML src/srcset (used by README <picture> images).
+        targets = [m.group(1).strip('<>') for m in re.finditer(r'!?\[[^\]]*\]\((<[^>]+>|[^\s)]+)(?:\s+"[^"]*")?\)', source)]
+        targets += re.findall(r'\b(?:src|srcset)="([^"\s]+)"', source)
+        for target in targets:
             parsed = urlsplit(target)
             if parsed.scheme or parsed.netloc or not parsed.path:
                 continue
