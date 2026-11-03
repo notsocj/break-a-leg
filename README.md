@@ -4,7 +4,7 @@
 
 [![Verify BreakALeg](https://github.com/notsocj/break-a-leg/actions/workflows/test.yml/badge.svg)](https://github.com/notsocj/break-a-leg/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-![Version](https://img.shields.io/badge/version-0.2.0-informational)
+![Version](https://img.shields.io/badge/version-0.3.0-informational)
 ![Works with](https://img.shields.io/badge/works%20with-Claude%20Code%20%7C%20Codex-black)
 
 BreakALeg is an open-source skill for coding agents. It reviews your mobile app and its backend the way an attacker would, then tells you in plain language what to fix before launch.

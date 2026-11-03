@@ -1,5 +1,22 @@
 # Verification
 
+## v0.3.0 checks
+
+Verified locally on 2026-11-03 using Node 22.23.4 and Python 3 on Linux. Consult the [workflow results](https://github.com/notsocj/break-a-leg/actions/workflows/test.yml) for Node 22 and 24 on the pushed commit.
+
+| Check | Result |
+| --- | --- |
+| Runner, discovery, static helper, and standalone CLI tests | 59 passed, 1 skipped (the IPv6-only localhost test; the verification host had no IPv6 loopback) |
+| Python installer and archive packaging tests | 14 passed |
+| Strict TypeScript and bundled-source parity | Passed |
+| Local Markdown file destinations, including README image paths | Passed (89 links) |
+| Documented synthetic demo | Vulnerable: 2 findings; secure: none; loopback only |
+| `limits` fixtures | Vulnerable fixture produced all 12 expected leads; secure counterpart produced none; promo-code, call-shape, comment, provider-error, and global-middleware cases covered by tests |
+| Release archives | `package.py` built source and skill archives from tracked files; no dependency or env files included. The extracted skill archive reports `--version` 0.3.0 and runs `limits`; the extracted source archive installs with `install.py --skills-dir` |
+| Skill evaluations | See [Skill evaluations](#skill-evaluations): six manual cases, run with and without the skill |
+
+`limits` was tested on synthetic projects and on a rebuilt copy of the AI abuse fixture, not on real-world codebases. Its recall depends on recognizable provider imports, call shapes, and route layouts; limits configured outside the code are invisible to it.
+
 ## v0.2.0 checks
 
 Verified locally on 2026-10-25 using Node 22.23.4 and Python 3 on Linux. Consult the [workflow results](https://github.com/notsocj/break-a-leg/actions/workflows/test.yml) for Node 22 and 24 on the pushed commit.

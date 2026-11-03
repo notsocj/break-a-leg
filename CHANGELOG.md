@@ -1,22 +1,36 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 — 2026-11-03
 
-- New offline `limits` command: lists server entry points (Next.js and Expo API routes, server actions, Supabase Edge Functions, Firebase Functions, Express/Hono/Fastify routes, FastAPI/Flask/Django views) that call an AI model, send SMS or email, or check passwords without a recognizable rate limiter or per-user quota. It also flags AI calls without an output cap or with a model taken from the request, and Supabase phone sign-in without CAPTCHA. Endpoints where a limiter or quota name appears are listed as `guarded` for the agent to confirm.
+### New: abuse protection and AI guardrails
+
+- New offline `limits` command. It lists server entry points (Next.js and Expo API routes, server actions, Supabase Edge Functions, Firebase Functions, Express/Hono/Fastify routes, FastAPI/Flask/Django views) that call an AI model, send SMS or email, or check passwords or promo codes without a recognizable rate limiter or per-user quota. It also flags AI calls without an output cap or with a model taken from the request, and Supabase phone sign-in without CAPTCHA. Providers are recognized by import or call shape; local imports are followed one level. Endpoints where a limiter or quota name appears are listed as `guarded` for the agent to confirm. Exits 1 when it reports leads.
 - New check guide `abuse.md`: rate limits for AI, SMS/OTP, email, password checks, and sign-ups; what working protection looks like (server-side, keyed by user, shared store); AI guardrails that keep an assistant on its job; severity guidance; and small finite verification instead of load testing.
 - `ai-features.md` gains a "Staying on topic" section. SKILL.md adds "endpoints anyone can repeat" to the high-yield first pass, and `discover` suggests the abuse guide for AI, SMS, and email dependencies.
-- New manual evaluation: an AI recipe app with six unlabelled abuse defects and decoys.
-- `limits` recognizes AI, SMS, and email calls by call shape when the client comes from a module it does not follow, treats redeem/promo/coupon routes as guessable code checks, and flags a model destructured from the request body.
-- Reporting guide: an area that could not be inspected is listed under Not checked ("check first"), never ranked as a finding.
-- Record the AI abuse evaluation with and without the skill on Opus and Haiku, and tighten its fixture (hosting, search caching, stale Edge Function entry).
-- README rewritten around the problem, with a quick start, an example report, and light/dark infographics. `check_docs.py` also verifies HTML image paths.
-- Supabase guide: flag `user_metadata` in policies, and replace the outdated default-grant statement with Supabase's 2026 Data API grant change.
-- Firebase guide: flag test-mode expiry rules, Realtime Database cascading grants, and roles read from user-writable documents.
+
+### Finds more real issues in Supabase and Firebase
+
 - `rls-audit`: new leads for signed-in-only policies (`auth.uid() is not null`, `auth.role() = 'authenticated'`), policies reading `user_metadata`, and insert/update policies on tables with entitlement columns (`is_pro`, credits, role, plan) that no column grant restricts. `DROP POLICY` and `ALTER POLICY` are now replayed, so removed or tightened policies are no longer reported. Lead text no longer assumes Supabase's old default table grants.
-- Add two harder manual evaluations, multi-tenant Supabase and Firebase marketplace, each with six unlabelled defects and contract-matching decoys. The Supabase backend rubric now accepts noting that public profiles expose entitlement columns, at low severity.
 - `rls-audit`: skip the writable-entitlement-columns lead when the write policy is admin-gated (for example `is_org_admin(...)`), and accept membership helpers such as `is_org_member(...)` as an identity check in storage policies. A storage policy whose only identity check is `auth.role() = 'authenticated'` is now reported.
-- Record Claude Haiku 5.5 runs of four evaluations with and without the skill.
-- Record the first agent runs of the Supabase, false-positive, and local-first evaluations, with and without the skill, in VERIFICATION.md.
+- Supabase guide: flag `user_metadata` in policies, and describe Supabase's 2026 Data API grant change instead of the old default-grant statement.
+- Firebase guide: flag test-mode expiry rules, Realtime Database cascading grants, and roles read from user-writable documents.
+
+### Reports
+
+- An area that could not be inspected is listed under Not checked ("check first"), never ranked as a finding.
+
+### Evaluations
+
+- Three new manual evaluations: multi-tenant Supabase, Firebase marketplace, and AI abuse, each with six unlabelled defects and contract-matching decoys.
+- Recorded agent runs with and without the skill in VERIFICATION.md: Opus on all six cases, Haiku on five. Every run found every defect; the skill's measured effect is fewer false alarms and clearer reports.
+
+### Documentation
+
+- README rewritten around the problem it solves, with a quick start, an example report, and light/dark infographics. `check_docs.py` also verifies HTML image paths.
+
+### Compatibility
+
+- Plan schema 1 and report schema 2 are unchanged. Existing plans and reports remain valid. No new runtime dependencies; Node 22.18+ is still required for the helper.
 
 ## 0.2.0 — 2026-10-25
 
