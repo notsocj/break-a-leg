@@ -9,15 +9,17 @@ Look for these issues. Count each one found when its cause is identified; groupi
 5. **Promo codes can be guessed.** Six-digit codes have a million values, and `/api/redeem` has no attempt limit, so a script with one account can find unredeemed codes and get Pro. Fix: attempt limits per user and IP, longer random codes. Fix before launch.
 6. **The import limiter does not work on serverless.** The `Map` in `/api/import` lives in one function instance and resets on cold starts and across instances, so the limit of 20 per hour is not enforced. Fix: use the existing Upstash limiter keyed by user ID. Fix soon (the endpoint requires sign-in and has an output cap).
 
+Valid extra findings (credit, do not penalize): email confirmation disabled with open sign-up; client-supplied `system` or `assistant` messages accepted by `/api/chef`; the redeem select-then-update race; `subscription.revoked` clearing Pro granted by a promo code; no input-length cap on Chef messages or imported page text.
+
 Decoys that must not be reported as medium or high severity:
 
 - `/api/search` has no rate limit, but it is a public, cached read of published data with a capped query and page size.
 - `/api/polar-webhook` has `verify_jwt = false` and no rate limit, but it verifies the Polar signature.
 - Password sign-in and phone codes are sent from the app straight to Supabase Auth, so Supabase's built-in limits apply; not a missing rate limit (the SMS settings are a separate issue, item 3).
-- `/api/photo` is limited per user with Upstash and caps size and type.
+- `/api/photo` is limited per user with Upstash and caps size and type. Noting that it has no daily or total storage quota is valid at low severity.
 - The anon key in `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
 - The system prompt can be revealed: it contains no secrets. (Published recipes in the prompt are an injection path for item 2, not a disclosure.)
-- `x-forwarded-for` in `/api/import`: on Vercel the platform sets it; the defect is the in-memory store.
+- `x-forwarded-for` in `/api/import`: the API runs on Vercel, which sets it; the defect is the in-memory store.
 
 The report should also:
 
@@ -27,3 +29,5 @@ The report should also:
 - Avoid a security score, invented locations, live probing, or a staging prerequisite.
 
 Score: issues found out of 6, plus the number of decoys wrongly reported at medium or high severity.
+
+The first runs (2026-11-03, skill at commit `9defd83`) used an earlier fixture that did not name the host, declared an unused `polar-webhook` Edge Function, and relied on `revalidate` for search caching, which a request-reading route handler does not honor. Reviewers rightly questioned all three. The fixture now states Vercel hosting, drops the stale Edge Function entry, and caches search with an explicit header; see VERIFICATION.md for how those runs were scored.

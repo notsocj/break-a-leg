@@ -7,6 +7,7 @@ Product contract:
 - Chef can share one of the user's own recipes with a friend by email.
 - Users can invite friends by email. Pro is granted by a Polar subscription or a 6-digit promo code from partner events.
 - Recipe search over published recipes is public and needs no account.
+- The web/ API is deployed on Vercel.
 
 mobile/.env:
   EXPO_PUBLIC_SUPABASE_URL=https://example.supabase.co
@@ -35,8 +36,6 @@ supabase/config.toml:
   enable_signup = true
   [auth.sms.twilio]
   enabled = true
-  [functions.polar-webhook]
-  verify_jwt = false
 
 Twilio console (from the founder's notes): SMS geo permissions enabled for all countries.
 
@@ -121,11 +120,10 @@ web/app/api/photo/route.ts:
   }
 
 web/app/api/search/route.ts:
-  export const revalidate = 300                         // cached at the edge for 5 minutes
   export async function GET(req) {
     const q = new URL(req.url).searchParams.get('q')?.slice(0, 80) ?? ''
-    const { data } = await anon.from('recipes').select('id, title, author').eq('published', true).textSearch('title', q).limit(20)
-    return Response.json(data)
+    const { data } = await anon.from('recipes').select('id, title, author').eq('published', true).textSearch('title', q, { type: 'websearch' }).limit(20)
+    return Response.json(data, { headers: { 'Cache-Control': 'public, s-maxage=300' } })   // CDN-cached per URL for 5 minutes
   }
 
 web/app/api/polar-webhook/route.ts:

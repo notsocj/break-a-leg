@@ -24,7 +24,7 @@ Do not persist access/refresh tokens, private keys, passwords, cookies, producti
 
 ## Suggested narrative structure
 
-1. Launch priority in plain language: Fix before launch (critical/high), Fix soon (medium), Good to know (low/informational), and Not checked (blocked or skipped areas). Show each item's evidence status beside it; a source-supported high-severity issue still belongs under Fix before launch.
+1. Launch priority in plain language: Fix before launch (critical/high), Fix soon (medium), Good to know (low/informational), and Not checked (blocked or skipped areas). Show each item's evidence status beside it; a source-supported high-severity issue still belongs under Fix before launch. An area you could not inspect (for example, missing migrations or policies) is not a finding, however serious it could be: list it under Not checked and mark it "check first" when it could change the launch decision.
 2. Scope and outcome: number of reproduced/source-supported issues and material limits.
 3. Findings in impact order: evidence, cause, remediation, retest. Where it helps, include the exact policy, rule, or handler change as a proposed patch, labeled unapplied.
 4. Coverage table: check, environment, status, reason.

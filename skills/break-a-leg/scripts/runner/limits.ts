@@ -37,22 +37,27 @@ const operationPackages: Record<Operation, string[]> = {
 const operationPatterns: Record<Operation, RegExp[]> = {
   ai: [
     /api\.openai\.com|api\.anthropic\.com|generativelanguage\.googleapis\.com|api\.groq\.com|openrouter\.ai\/api|api\.mistral\.ai|api\.replicate\.com|api\.together\.xyz|api\.deepseek\.com|api\.x\.ai|api\.perplexity\.ai/,
-    /^\s*(?:from|import)\s+(?:openai|anthropic|google\.generativeai|google\.genai|litellm|langchain\w*|groq|mistralai|replicate|cohere)\b/m
+    /^\s*(?:from|import)\s+(?:openai|anthropic|google\.generativeai|google\.genai|litellm|langchain\w*|groq|mistralai|replicate|cohere)\b/m,
+    // Call shapes, for clients created in a module the scan does not follow.
+    /\.chat\.completions\.create\(|\.responses\.create\(|\.generateContent\(|\b(?:generate|stream)(?:Text|Object)\(/
   ],
   sms: [
     /api\.twilio\.com|verify\.v2\.services|signInWithOtp\(\s*\{\s*phone\b/,
-    /^\s*(?:from|import)\s+(?:twilio|vonage|plivo|messagebird|telnyx)\b/m
+    /^\s*(?:from|import)\s+(?:twilio|vonage|plivo|messagebird|telnyx)\b/m,
+    /\.verifications\.create\(/
   ],
   email: [
     /api\.resend\.com|api\.sendgrid\.com|api\.postmarkapp\.com|api\.mailgun\.net|resetPasswordForEmail\(|signInWithOtp\(\s*\{\s*email\b|inviteUserByEmail\(/,
-    /^\s*(?:from|import)\s+(?:smtplib|sendgrid|resend|postmarker|mailgun)\b|send_mail\(/m
+    /^\s*(?:from|import)\s+(?:smtplib|sendgrid|resend|postmarker|mailgun)\b|send_mail\(/m,
+    /\.emails\.send\(|\bsgMail\.send\(|\.sendMail\(|\.sendEmail(?:WithTemplate)?\(/
   ],
   auth: [
     /\bsignInWithPassword\(|\.signUp\(|\bverifyOtp\(|\bverifyPassword\(|\bcomparePassword\(|\bcheck_password\(|\bverify_password\(|\bcheckpw\(/
   ]
 };
-// Route paths named like sign-in flows are auth endpoints even when the check is in a helper.
-const authRouteName = /(^|\/|\()(login|log-in|signin|sign-in|signup|sign-up|register|forgot[-_]?password|reset[-_]?password|otp|verify[-_]?(otp|code|phone|email))(\)|\/|\.|$)/i;
+// Route paths named like sign-in or code-redemption flows check a guessable secret (password,
+// OTP, promo code) even when the check itself lives in a helper.
+const authRouteName = /(^|\/|\()(login|log-in|signin|sign-in|signup|sign-up|register|forgot[-_]?password|reset[-_]?password|otp|verify[-_]?(otp|code|phone|email)|redeem|promo|coupon|voucher|gift[-_]?card)(\)|\/|\.|$)/i;
 
 // --- What counts as protection ----------------------------------------------------------------
 // Rate limiters (libraries or a custom helper named like one). Provider error handling such as
@@ -64,6 +69,8 @@ const limiterSignal = /rate[-_]?limit|ratelimit|@upstash\/ratelimit|rate-limiter
 // or password checks, which are abused by unauthenticated or many accounts).
 const quotaSignal = /\b(quota\w*|credits?|creditBalance|usage_?count|usageCount|daily_?limit|dailyLimit|messages_?left|messagesLeft|remaining_?\w*|freeMessages|free_messages|tokens_?used|tokensUsed)\b/i;
 const outputCap = /max_tokens|maxTokens|max_output_tokens|maxOutputTokens|max_completion_tokens|maxCompletionTokens|max_new_tokens|num_predict/;
+// Destructured from the body: const { messages, model } = await req.json(), then model: model ?? 'x'.
+const modelDestructured = /\{[^{}\n]*\bmodel\b[^{}\n]*\}\s*=\s*(?:await\s+)?(?:req|request|c\.req)\.json\(\)|\{[^{}\n]*\bmodel\b[^{}\n]*\}\s*=\s*(?:req|request)\.body\b/;
 const modelFromRequest = /\bmodel\s*[:=]\s*(?:await\s+)?(?:req|request|body|input|params|payload|data|args|json|ctx\.req|event\.body|c\.req)(?:\??\.\w+|\[['"]\w+['"]\])*?(?:\??\.model\b|\[['"]model['"]\])|\bmodel\s*=\s*(?:request|body|payload|data|req)(?:\.\w+)*\.get\(\s*['"]model['"]/;
 
 // Remove comments while keeping line numbers, so "TODO: add rate limit" is not a limiter.
@@ -237,11 +244,10 @@ export async function limitsAudit(root: string, maxFiles = 20000) {
 
     if (ops.has('ai')) {
       if (!outputCap.test(text)) leads.push({ kind: 'ai-output-not-capped', object, file: file.path, line: entryLine('ai'), operations: ['ai'], detail: `No max_tokens (or equivalent) found for the AI call${via('ai')}. A long or looping request can cost far more than a normal reply. Set an output cap on the server.` });
-      const m = modelFromRequest.exec(text);
-      if (m) {
-        const owner = scope.find(s => modelFromRequest.test(s.text))!;
-        leads.push({ kind: 'ai-model-from-request', object, file: owner.path, line: lineOf(owner.text, modelFromRequest.exec(owner.text)!.index), operations: ['ai'], detail: 'The model name appears to come from the request. A caller can pick the most expensive model. Choose the model on the server, or check it against an allowlist.' });
-      }
+      // Direct (model: body.model) or destructured ({ model } = await req.json()) use of the request's model.
+      const usesRequestModel = (t: string) => modelFromRequest.exec(t) ?? (/\bmodel\s*(?::\s*model\b|,|\s*\})/.test(t) ? modelDestructured.exec(t) : null);
+      const owner = scope.find(s => usesRequestModel(s.text));
+      if (owner) leads.push({ kind: 'ai-model-from-request', object, file: owner.path, line: lineOf(owner.text, usesRequestModel(owner.text)!.index), operations: ['ai'], detail: 'The model name appears to come from the request. A caller can pick the most expensive model. Choose the model on the server, or check it against an allowlist.' });
     }
   }
 

@@ -74,6 +74,24 @@ Findings:
 - Both local-first runs made the same reasoning slip: they treated the leftover provider credential as latent because the assistant service is unused, although the credential is user-entered and stored regardless.
 - Helper noise seen in the multi-tenant skill run: `rls-audit` raised `user-writable-privileged-columns` on `invitations`, whose only write policy is admin-gated through `is_org_admin`, and `storage-policy-without-identity` on a storage policy that checks membership through `is_org_member()` instead of calling `auth.*` directly. The agent dismissed both after tracing.
 
+### AI abuse and rate limits
+
+Run on 2026-11-03 against commit `9defd83` (the commit that added `limits` and `abuse.md`), with the same isolation and grading, on Claude Opus and Claude Haiku through Claude Code's model aliases. One run per cell.
+
+| Model | Defects found (skill / baseline) | Decoys wrongly rated medium or high (skill / baseline) | Report discipline (skill / baseline) |
+| --- | --- | --- | --- |
+| Opus | 6/6 / 6/6 | 0 / 2 (public search, photo upload volume) | Pass / Partial: P0–P2 ranks, no evidence labels |
+| Haiku | 6/6 / 6/6 | 1 (photo upload) / 2 (public search, photo upload) | Pass, with one ranking slip / Partial: no evidence labels |
+
+Findings:
+
+- All four runs found every defect, including the share tool's missing ownership check, client-only Chef quota, SMS pumping setup, invite spam, guessable promo codes, and the in-memory import limiter. As with the earlier cases, the fixture does not separate finding ability.
+- The skill's effect was again precision and reporting: fewer decoys raised (0 versus 2 on Opus, 1 versus 2 on Haiku), a plain-language launch priority, evidence labels, and coverage tables that separate blocked from skipped. Both baselines still proposed mocked, bounded verification without real sends.
+- The baseline decoy ratings were partly justified by the fixture: it did not name the host (so `x-forwarded-for` trust was unclear), relied on `revalidate` for search caching, which a request-reading route handler does not honor, and set no total storage quota on photos. The fixture and rubric are now tightened; those runs are scored as above.
+- Both skill runs ran `limits` on a rebuilt copy of the fixture. The pseudocode has no import lines, so the helper found only the SMS lead. `limits` now also recognizes provider call shapes (`.chat.completions.create(`, `.emails.send(`, `generateText(`), treats promo-code and redeem routes as guessable checks, and catches a model destructured from the request body. On the same rebuilt copy it now reports seven leads covering Chef, import, invites, redemption, and SMS.
+- The Haiku skill run listed the unseen RLS policies as its top "Fix before launch" item, labelled `needs-verification`. The reporting guide now says an area that could not be inspected goes under Not checked, marked "check first", rather than ranking as a finding.
+- Valid extra findings appeared across runs (email confirmation off, client-supplied system messages, the redemption race, promo Pro revoked by subscription events); the rubric now credits them.
+
 ## Earlier repository maintenance checks
 
 Verified locally on 2026-10-24 using Node 24.18.0 on macOS for the maintenance changes after the v0.1.2 tag.

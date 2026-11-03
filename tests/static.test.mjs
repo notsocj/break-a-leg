@@ -168,3 +168,25 @@ test('limits CLI exits 1 with leads and 0 without', () => {
   assert.equal(run('tests/fixtures/limits/vulnerable').status, 1);
   assert.equal(run('tests/fixtures/limits/secure').status, 0);
 });
+test('limits recognizes AI and email calls by call shape when the client comes from an unfollowed module', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'bal-limits-shape-')); t.after(() => rm(dir, { recursive: true, force: true }));
+  await mkdir(join(dir, 'app', 'api', 'chef'), { recursive: true });
+  await writeFile(join(dir, 'app', 'api', 'chef', 'route.ts'), "import { clients } from 'internal-sdk';\nexport async function POST(req: Request) {\n  const r = await clients.openai.chat.completions.create({ model: 'x', messages: [] });\n  await clients.resend.emails.send({ to: 'a@example.com' });\n  return Response.json(r);\n}\n");
+  const r = await limitsAudit(dir);
+  const lead = r.leads.find(l => l.kind === 'endpoint-without-rate-limit');
+  assert.deepEqual(lead.operations, ['ai', 'email']);
+  assert.equal(lead.line, 3);
+  assert.ok(r.leads.some(l => l.kind === 'ai-output-not-capped'));
+});
+test('limits treats promo-code routes as guessable checks and catches a destructured request model', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'bal-limits-redeem-')); t.after(() => rm(dir, { recursive: true, force: true }));
+  await mkdir(join(dir, 'app', 'api', 'redeem'), { recursive: true });
+  await mkdir(join(dir, 'app', 'api', 'chat'), { recursive: true });
+  await writeFile(join(dir, 'app', 'api', 'redeem', 'route.ts'), "export async function POST(req: Request) {\n  const { code } = await req.json();\n  return Response.json({ ok: code === '123456' });\n}\n");
+  await writeFile(join(dir, 'app', 'api', 'chat', 'route.ts'), "import OpenAI from 'openai';\nconst openai = new OpenAI();\nexport async function POST(req: Request) {\n  const { messages, model } = await req.json();\n  return Response.json(await openai.chat.completions.create({ model: model ?? 'small', max_tokens: 200, messages }));\n}\n");
+  const r = await limitsAudit(dir);
+  assert.ok(r.leads.some(l => l.kind === 'endpoint-without-rate-limit' && l.object === '/api/redeem' && l.operations.includes('auth')));
+  const model = r.leads.find(l => l.kind === 'ai-model-from-request');
+  assert.equal(model.object, '/api/chat');
+  assert.equal(model.line, 4);
+});

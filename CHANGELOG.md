@@ -6,6 +6,10 @@
 - New check guide `abuse.md`: rate limits for AI, SMS/OTP, email, password checks, and sign-ups; what working protection looks like (server-side, keyed by user, shared store); AI guardrails that keep an assistant on its job; severity guidance; and small finite verification instead of load testing.
 - `ai-features.md` gains a "Staying on topic" section. SKILL.md adds "endpoints anyone can repeat" to the high-yield first pass, and `discover` suggests the abuse guide for AI, SMS, and email dependencies.
 - New manual evaluation: an AI recipe app with six unlabelled abuse defects and decoys.
+- `limits` recognizes AI, SMS, and email calls by call shape when the client comes from a module it does not follow, treats redeem/promo/coupon routes as guessable code checks, and flags a model destructured from the request body.
+- Reporting guide: an area that could not be inspected is listed under Not checked ("check first"), never ranked as a finding.
+- Record the AI abuse evaluation with and without the skill on Opus and Haiku, and tighten its fixture (hosting, search caching, stale Edge Function entry).
+- README rewritten around the problem, with a quick start, an example report, and light/dark infographics. `check_docs.py` also verifies HTML image paths.
 - Supabase guide: flag `user_metadata` in policies, and replace the outdated default-grant statement with Supabase's 2026 Data API grant change.
 - Firebase guide: flag test-mode expiry rules, Realtime Database cascading grants, and roles read from user-writable documents.
 - `rls-audit`: new leads for signed-in-only policies (`auth.uid() is not null`, `auth.role() = 'authenticated'`), policies reading `user_metadata`, and insert/update policies on tables with entitlement columns (`is_pro`, credits, role, plan) that no column grant restricts. `DROP POLICY` and `ALTER POLICY` are now replayed, so removed or tightened policies are no longer reported. Lead text no longer assumes Supabase's old default table grants.
