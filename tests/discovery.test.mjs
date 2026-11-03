@@ -7,7 +7,8 @@ import { discover } from '../runner/discover.ts';
 
 test('discovers four mobile stacks and shared backend signals without treating them as findings', async () => {
   const r = await discover('tests/fixtures');
-  assert.deepEqual(r.stacks, ['android', 'expo', 'firebase', 'flutter', 'ios', 'react-native', 'supabase']);
+  // custom-api comes from the limits fixtures' Next.js and Express manifests.
+  assert.deepEqual(r.stacks, ['android', 'custom-api', 'expo', 'firebase', 'flutter', 'ios', 'react-native', 'supabase']);
   assert.equal(r.truncated, false); assert.equal(r.findings, undefined);
 });
 test('skips dependency folders, secrets, symlinks and oversized manifests', async t => {
@@ -30,7 +31,7 @@ test('detects common indie stacks: Next.js API, Supabase migrations, Firebase co
   await writeFile(join(dir, 'app', 'package.json'), JSON.stringify({ dependencies: { expo: '1', 'react-native': '1', 'react-native-purchases': '1', 'expo-secure-store': '1', 'expo-auth-session': '1' } }));
   // Next.js backend using the SSR Supabase client, Stripe and OpenAI.
   await mkdir(join(dir, 'web'));
-  await writeFile(join(dir, 'web', 'package.json'), JSON.stringify({ dependencies: { next: '1', '@supabase/ssr': '1', stripe: '1', openai: '1' } }));
+  await writeFile(join(dir, 'web', 'package.json'), JSON.stringify({ dependencies: { next: '1', '@supabase/ssr': '1', stripe: '1', openai: '1', twilio: '1' } }));
   // Supabase migrations and functions without a committed config.toml.
   await mkdir(join(dir, 'supabase', 'migrations'), { recursive: true });
   await mkdir(join(dir, 'supabase', 'functions', 'ai'), { recursive: true });
@@ -44,7 +45,8 @@ test('detects common indie stacks: Next.js API, Supabase migrations, Firebase co
   await writeFile(join(dir, 'vapor', 'Package.swift'), '.package(url: "https://github.com/vapor/vapor.git", from: "4.0.0")');
   const r = await discover(dir);
   assert.deepEqual(r.stacks, ['custom-api', 'expo', 'firebase', 'ios', 'react-native', 'supabase']);
-  assert.deepEqual(r.suggestedChecks, ['ai-features', 'auth-flows', 'local-data', 'paid-features']);
+  assert.deepEqual(r.suggestedChecks, ['abuse', 'ai-features', 'auth-flows', 'local-data', 'paid-features']);
+  assert.ok(r.checkSignals.some(s => s.check === 'abuse' && s.source === 'twilio'));
   assert.ok(r.signals.some(s => s.stack === 'supabase' && s.path === 'supabase/migrations'));
   assert.ok(r.signals.some(s => s.stack === 'custom-api' && s.path === 'vapor/Package.swift'));
   assert.ok(r.checkSignals.some(s => s.check === 'paid-features' && s.source === 'react-native-purchases'));

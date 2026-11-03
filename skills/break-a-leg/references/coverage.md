@@ -12,10 +12,12 @@
 | Stack and check discovery | Offline helper: stacks plus suggested check guides from dependencies | Hints only; confirm actual reachable code |
 | Supabase migrations and config.toml | Offline `rls-audit` helper: tables without RLS, permissive and signed-in-only policies, policies reading `user_metadata`, user-writable entitlement columns without column grants, RLS-bypassing views, exposed security-definer functions, public buckets, functions without JWT verification, anonymous sign-ins | Leads only; dashboard changes, uncommitted migrations, table grants, triggers, and Edge Function code are not analyzed |
 | Credentials in files | Offline `secrets` helper reporting type and location, never values | Pattern-based; validity, Git history, and release inclusion are not checked |
+| Rate limits on abusable endpoints | Offline `limits` helper: JS/TS and Python server entry points that call AI, send SMS/email, or check passwords without a recognizable limiter or quota; AI calls without output caps or with a request-chosen model; Supabase phone sign-in without CAPTCHA | Leads only; gateway, firewall, dashboard, and provider limits are invisible; local imports followed one level; limiter strength is not tested |
+| AI scope and abuse guardrails | Dedicated guide (`abuse.md`) | Whether an assistant stays on topic needs agent review or a small finite staging test |
 | Cookie-session custom APIs | Runner `accounts.cookieName` option for the same read probe | Same requirements as bearer sessions |
 | Secret/storage/validation/entitlement checks | Agent-guided source analysis and project tests | No claim of automatic exhaustive scanning |
 | Sign-in, OAuth redirects, deep links, account deletion | Dedicated guide | Provider dashboard settings are often unavailable; record them as unverified |
-| AI features | Dedicated guide | No live cost, rate-limit, or injection testing against providers |
+| AI features | Dedicated guide | No live cost, load, or injection testing against providers |
 | Local app lock, lifecycle overlays, backup, deletion | Dedicated guide plus isolated project tests | Name mocked platform boundaries; widget tests are not native-device verification |
 | Write authorization, subscription sandbox, uploads | Project-specific isolated tests | Record scope, evidence, setup and cleanup; otherwise untested |
 | Device UI, binary analysis, jailbreak/tamper resistance | Not bundled | Mark skipped unless separately requested and available |

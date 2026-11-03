@@ -1,6 +1,6 @@
 ---
 name: break-a-leg
-description: Hunt security flaws in a mobile app and its backend before launch. Use for a security review, pre-launch check, or scoped bug hunt in Flutter, React Native/Expo, Swift/iOS, Kotlin/Android, or another mobile codebase, including Supabase, Firebase, and custom API backends. Also use when the user asks "is my app safe to launch", "can users see each other's data", "check my Supabase RLS or Firebase rules", "did I leak an API key", "can someone get premium for free", or wants a review before App Store or Play Store submission. Works from source alone; verifies selected findings against a local or staging backend when available.
+description: Hunt security flaws in a mobile app and its backend before launch. Use for a security review, pre-launch check, or scoped bug hunt in Flutter, React Native/Expo, Swift/iOS, Kotlin/Android, or another mobile codebase, including Supabase, Firebase, and custom API backends. Also use when the user asks "is my app safe to launch", "can users see each other's data", "check my Supabase RLS or Firebase rules", "did I leak an API key", "can someone get premium for free", "can someone run up my AI or SMS bill", "does my chatbot answer off-topic questions", or wants a review before App Store or Play Store submission. Works from source alone; verifies selected findings against a local or staging backend when available.
 ---
 
 # BreakALeg
@@ -14,7 +14,8 @@ Give the app a security rehearsal before launch. Identify meaningful weaknesses,
    - `node <skill-dir>/scripts/break-a-leg.mjs discover <project-root>` lists candidate stacks and `suggestedChecks` (guides worth reading because of payment, AI, local-storage, or sign-in dependencies). It does not find vulnerabilities.
    - `node <skill-dir>/scripts/break-a-leg.mjs secrets <project-root>` lists likely credentials by file, line, type, and an exposure hint, never the value. Prefer it to `grep` for credentials so values never enter tool output.
    - When a `supabase/` folder exists, `node <skill-dir>/scripts/break-a-leg.mjs rls-audit <project-root>` replays migrations and config.toml and lists leads: tables without RLS, `using (true)` or signed-in-only policies, policies reading `user_metadata`, write policies on tables with entitlement columns (`is_pro`, credits, role) and no column grants, views that bypass RLS, exposed security-definer functions, public buckets, and Edge Functions without JWT verification. It does not read Edge Function code, so check by hand whether functions trust a user ID from the request body.
-   Treat helper output as leads to trace, not findings. Exit code 1 from `secrets` or `rls-audit` only means there is something to review.
+   - `node <skill-dir>/scripts/break-a-leg.mjs limits <project-root>` lists server endpoints that call an AI model, send SMS or email, or check passwords without a recognizable rate limit or per-user quota, plus AI calls without an output cap or with a model chosen by the request, and Supabase phone sign-in without CAPTCHA.
+   Treat helper output as leads to trace, not findings. Exit code 1 from `secrets`, `rls-audit`, or `limits` only means there is something to review.
 3. Read only the applicable mobile and backend references listed below, plus the check guides named in discovery's `suggestedChecks`. Generated iOS/Android folders in Flutter/React Native projects are not independent apps. Ask which app to prioritize if a monorepo contains unrelated products.
 4. Map the sensitive workflows: identity, ownership/membership, roles, paid operations, uploads, private storage, and expensive API calls. Use product rules supplied by the user or code; record uncertainty rather than inventing requirements.
    For local-first apps, map device access, app lock, backup/restore, and deletion instead of inventing a server boundary. Read [local-data.md](references/checks/local-data.md) when these flows exist. Distinguish implemented features from planned integrations before assessing reachability.
@@ -29,6 +30,7 @@ Most launch-blocking bugs in founder apps sit in a few places. Before deeper inv
 - **Entitlements decided on the device.** Premium or credit checks done only through the RevenueCat/StoreKit/Play Billing SDK on the client, with no server check before a paid or expensive operation. Payment webhooks that skip signature verification.
 - **Server endpoints that skip identity.** Edge/Cloud Functions or API routes that trust a `userId` from the request body, run without JWT verification, or call an AI provider for anyone.
 - **Sign-in edges.** Anonymous sign-ins treated as real users, unconfirmed emails, OAuth redirects or deep links that another app could capture.
+- **Endpoints anyone can repeat.** AI, SMS/OTP, email, and password-check endpoints with no server-side rate limit or per-user quota; AI features with no output cap that answer anything, turning the app into a free chatbot on the founder's bill.
 
 Each bullet has a matching guide below. A lead from this pass still needs the tracing described in "Investigate and verify".
 
@@ -85,6 +87,7 @@ Do not automatically patch application code, rotate credentials, change database
 - Local app lock, lifecycle, backup, and deletion: [local-data.md](references/checks/local-data.md)
 - Paid features and expensive operations: [paid-features.md](references/checks/paid-features.md)
 - Sign-in, sessions, OAuth redirects, deep links, and account deletion: [auth-flows.md](references/checks/auth-flows.md)
-- AI features: provider keys, cost limits, and prompt injection into tools or data: [ai-features.md](references/checks/ai-features.md)
+- AI features: provider keys, cost limits, staying on topic, and prompt injection into tools or data: [ai-features.md](references/checks/ai-features.md)
+- Rate limits, SMS/email abuse, and AI guardrails: [abuse.md](references/checks/abuse.md)
 
-Read [coverage.md](references/coverage.md) when setting expectations or selecting checks. Only the listed runtime probe is implemented by the helper; `rls-audit` and `secrets` are static lead finders, and the other checks require agent reasoning and project-specific verification. Reference guides are not executed scanners.
+Read [coverage.md](references/coverage.md) when setting expectations or selecting checks. Only the listed runtime probe is implemented by the helper; `rls-audit`, `secrets`, and `limits` are static lead finders, and the other checks require agent reasoning and project-specific verification. Reference guides are not executed scanners.

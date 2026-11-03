@@ -1,0 +1,137 @@
+FICTIONAL RECIPE APP "MISE" — CONFIG AND PSEUDOCODE, NOT EXECUTABLE
+
+Product contract:
+- Users sign in with email and password or with a phone number (SMS code). Sign-up is open to anyone.
+- Recipes are private to their owner unless the owner publishes them to the community feed.
+- "Chef" is an AI cooking assistant. Free users get 10 Chef messages per day; Pro users get 200.
+- Chef can share one of the user's own recipes with a friend by email.
+- Users can invite friends by email. Pro is granted by a Polar subscription or a 6-digit promo code from partner events.
+- Recipe search over published recipes is public and needs no account.
+
+mobile/.env:
+  EXPO_PUBLIC_SUPABASE_URL=https://example.supabase.co
+  EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon key>
+  EXPO_PUBLIC_API_URL=https://api.mise.example
+
+mobile/lib/auth.ts:
+  export const signIn = (email, password) => supabase.auth.signInWithPassword({ email, password })
+  export const sendPhoneCode = phone => supabase.auth.signInWithOtp({ phone })
+
+mobile/screens/Chef.tsx:
+  const LIMIT = profile.is_pro ? 200 : 10
+  const used = Number(await AsyncStorage.getItem(`chef-used-${today()}`) ?? 0)
+  if (used >= LIMIT) return showPaywall()
+  const reply = await api.post('/api/chef', { messages, model: profile.is_pro ? 'gpt-5' : 'gpt-5-mini' })
+  await AsyncStorage.setItem(`chef-used-${today()}`, String(used + 1))
+
+supabase/config.toml:
+  [auth]
+  enable_signup = true
+  [auth.email]
+  enable_confirmations = false
+  [auth.rate_limit]
+  sms_sent = 1000
+  [auth.sms]
+  enable_signup = true
+  [auth.sms.twilio]
+  enabled = true
+  [functions.polar-webhook]
+  verify_jwt = false
+
+Twilio console (from the founder's notes): SMS geo permissions enabled for all countries.
+
+web/lib/ratelimit.ts:
+  import { Ratelimit } from '@upstash/ratelimit'
+  export const perUser = new Ratelimit({ redis: Redis.fromEnv(), limiter: Ratelimit.slidingWindow(10, '1 m') })
+
+web/lib/supabase-admin.ts:
+  export const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+web/app/api/chef/route.ts:
+  const SYSTEM = `You are Chef, Mise's friendly cooking assistant. Only help with cooking, recipes,
+  ingredients, and meal planning. Politely decline anything else.`
+  export async function POST(req) {
+    const user = await getUserFromBearer(req)          // verifies the Supabase JWT
+    if (!user) return new Response('Unauthorized', { status: 401 })
+    const { messages, model } = await req.json()
+    const feed = await admin.from('recipes').select('title, body').eq('published', true).limit(5)
+    const result = await openai.chat.completions.create({
+      model: model ?? 'gpt-5-mini',
+      messages: [{ role: 'system', content: SYSTEM + '\nPopular recipes:\n' + feed.data.map(r => r.title + ': ' + r.body).join('\n') }, ...messages],
+      tools: [shareRecipeTool],
+    })
+    for (const call of result.choices[0].message.tool_calls ?? []) {
+      if (call.function.name === 'share_recipe') await shareRecipe(JSON.parse(call.function.arguments))
+    }
+    return Response.json(result.choices[0].message)
+  }
+
+  async function shareRecipe({ recipeId, toEmail, note }) {
+    const { data: recipe } = await admin.from('recipes').select('*').eq('id', recipeId).single()
+    await resend.emails.send({ from: 'chef@mise.example', to: toEmail, subject: `A recipe for you: ${recipe.title}`, html: `<p>${note}</p>${recipe.body}` })
+  }
+
+web/app/api/invite/route.ts:
+  export async function POST(req) {
+    const user = await getUserFromBearer(req)
+    if (!user) return new Response('Unauthorized', { status: 401 })
+    const { emails, message } = await req.json()
+    for (const email of emails) {
+      await resend.emails.send({ from: 'hello@mise.example', to: email, subject: `${user.name} invited you to Mise`, html: `<p>${escapeHtml(message)}</p><a href="https://mise.example/join">Join</a>` })
+    }
+    return Response.json({ sent: emails.length })
+  }
+
+web/app/api/redeem/route.ts:
+  export async function POST(req) {
+    const user = await getUserFromBearer(req)
+    if (!user) return new Response('Unauthorized', { status: 401 })
+    const { code } = await req.json()                   // 6 digits, e.g. "482913"
+    const { data: promo } = await admin.from('promo_codes').select('*').eq('code', code).is('redeemed_by', null).maybeSingle()
+    if (!promo) return new Response('Invalid code', { status: 400 })
+    await admin.from('promo_codes').update({ redeemed_by: user.id }).eq('id', promo.id)
+    await admin.from('profiles').update({ is_pro: true }).eq('id', user.id)
+    return Response.json({ ok: true })
+  }
+
+web/app/api/import/route.ts:
+  // Turns a recipe web page into structured JSON with the AI model.
+  const hits = new Map()                               // ip -> { count, resetAt }
+  export async function POST(req) {
+    const user = await getUserFromBearer(req)
+    if (!user) return new Response('Unauthorized', { status: 401 })
+    const ip = req.headers.get('x-forwarded-for')
+    const entry = hits.get(ip) ?? { count: 0, resetAt: Date.now() + 3600_000 }
+    if (Date.now() > entry.resetAt) { entry.count = 0; entry.resetAt = Date.now() + 3600_000 }
+    if (++entry.count > 20) return new Response('Too many imports', { status: 429 })
+    hits.set(ip, entry)
+    const page = await fetchAllowedRecipeSite(await req.json())   // allowlisted domains, 500 KB cap
+    const parsed = await openai.chat.completions.create({ model: 'gpt-5-mini', max_tokens: 1500, response_format: { type: 'json_object' }, messages: [{ role: 'system', content: 'Extract the recipe as JSON.' }, { role: 'user', content: page.text }] })
+    return Response.json(JSON.parse(parsed.choices[0].message.content))
+  }
+
+web/app/api/photo/route.ts:
+  export async function POST(req) {
+    const user = await getUserFromBearer(req)
+    if (!user) return new Response('Unauthorized', { status: 401 })
+    const { success } = await perUser.limit(`photo:${user.id}`)
+    if (!success) return new Response('Too many uploads', { status: 429 })
+    const file = await readUpload(req, { maxBytes: 5_000_000, types: ['image/jpeg', 'image/png'] })
+    return Response.json(await saveToUserFolder(user.id, file))
+  }
+
+web/app/api/search/route.ts:
+  export const revalidate = 300                         // cached at the edge for 5 minutes
+  export async function GET(req) {
+    const q = new URL(req.url).searchParams.get('q')?.slice(0, 80) ?? ''
+    const { data } = await anon.from('recipes').select('id, title, author').eq('published', true).textSearch('title', q).limit(20)
+    return Response.json(data)
+  }
+
+web/app/api/polar-webhook/route.ts:
+  export async function POST(req) {
+    const event = validateEvent(await req.text(), headers(req), POLAR_WEBHOOK_SECRET)   // throws on a bad signature
+    if (event.type === 'subscription.active') await admin.from('profiles').update({ is_pro: true }).eq('id', event.data.metadata.userId)
+    if (event.type === 'subscription.revoked') await admin.from('profiles').update({ is_pro: false }).eq('id', event.data.metadata.userId)
+    return new Response('ok')
+  }

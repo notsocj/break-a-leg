@@ -5,6 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { rlsAudit, splitSql, qualify } from '../runner/rls-audit.ts';
 import { scanSecrets } from '../runner/secrets.ts';
+import { limitsAudit } from '../runner/limits.ts';
+import { spawnSync } from 'node:child_process';
 
 // ---------- rls-audit ----------
 
@@ -113,4 +115,56 @@ test('secrets skips dependency folders, lockfiles, and binaries', async t => {
   await writeFile(join(dir, 'image.bin'), Buffer.concat([Buffer.from([0, 1, 2]), Buffer.from(fake.stripe)]));
   const r = await scanSecrets(dir);
   assert.equal(r.hitCount, 0);
+});
+
+// ---------- limits ----------
+
+test('limits reports abusable endpoints without a rate limit, plus AI cap/model and SMS CAPTCHA leads', async () => {
+  const r = await limitsAudit('tests/fixtures/limits/vulnerable');
+  const summary = r.leads.map(l => `${l.kind}:${l.object}:${l.operations.join('+')}`).sort();
+  assert.deepEqual(summary, [
+    'ai-model-from-request:/api/chat:ai',
+    'ai-model-from-request:backend/main.py:ai',
+    'ai-output-not-capped:/api/chat:ai',
+    'ai-output-not-capped:backend/main.py:ai',
+    'endpoint-without-rate-limit:/api/chat:ai',
+    'endpoint-without-rate-limit:/api/invite:email',
+    'endpoint-without-rate-limit:/api/summarize:ai',
+    'endpoint-without-rate-limit:/login:auth',
+    'endpoint-without-rate-limit:backend/main.py:ai',
+    'endpoint-without-rate-limit:functions/coach:ai',
+    'endpoint-without-rate-limit:server/index.js:sms',
+    'sms-sign-in-without-captcha:auth.sms:sms'
+  ]);
+  // The AI call lives in a helper: the lead points at the helper's import line and names the helper.
+  const chat = r.leads.find(l => l.kind === 'endpoint-without-rate-limit' && l.object === '/api/chat');
+  assert.equal(chat.line, 2);
+  assert.match(chat.detail, /web\/lib\/ai\.ts/);
+  assert.match(r.leads.find(l => l.kind === 'sms-sign-in-without-captcha').detail, /500 per hour/);
+  // Test files and mobile client code are not entry points.
+  assert.ok(!r.leads.some(l => /route\.test|mobile\//.test(l.file)));
+});
+test('limits secure counterpart: limiters, quotas, CAPTCHA, and signed webhooks produce no leads', async () => {
+  const r = await limitsAudit('tests/fixtures/limits/secure');
+  assert.deepEqual(r.leads, []);
+  assert.deepEqual(r.guarded.map(g => g.object).sort(), ['/api/chat', '/api/coach', '/api/invite', '/login', 'backend/main.py', 'server/index.js']);
+  assert.match(r.guarded.find(g => g.object === '/api/coach').signal, /quota/);
+});
+test('limits ignores limiter words in comments and a quota does not cover SMS, but a global middleware limiter does', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'bal-limits-')); t.after(() => rm(dir, { recursive: true, force: true }));
+  await mkdir(join(dir, 'a', 'app', 'api', 'otp'), { recursive: true });
+  await writeFile(join(dir, 'a', 'package.json'), '{}');
+  await writeFile(join(dir, 'a', 'app', 'api', 'otp', 'route.ts'), "import twilio from 'twilio';\n// rateLimit is handled later\nconst credits = 3;\nexport async function POST() { await twilio().messages.create({}); }\n");
+  await mkdir(join(dir, 'b', 'app', 'api', 'otp'), { recursive: true });
+  await writeFile(join(dir, 'b', 'package.json'), '{}');
+  await writeFile(join(dir, 'b', 'app', 'api', 'otp', 'route.ts'), "import twilio from 'twilio';\nexport async function POST() { await twilio().messages.create({}); }\n");
+  await writeFile(join(dir, 'b', 'middleware.ts'), "import { Ratelimit } from '@upstash/ratelimit';\nexport async function middleware() {}\n");
+  const r = await limitsAudit(dir);
+  assert.deepEqual(r.leads.map(l => l.file), ['a/app/api/otp/route.ts']);
+  assert.match(r.guarded[0].signal, /global limiter in b\/middleware\.ts/);
+});
+test('limits CLI exits 1 with leads and 0 without', () => {
+  const run = path => spawnSync(process.execPath, ['skills/break-a-leg/scripts/break-a-leg.mjs', 'limits', path], { encoding: 'utf8' });
+  assert.equal(run('tests/fixtures/limits/vulnerable').status, 1);
+  assert.equal(run('tests/fixtures/limits/secure').status, 0);
 });

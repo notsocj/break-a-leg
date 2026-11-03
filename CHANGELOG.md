@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- New offline `limits` command: lists server entry points (Next.js and Expo API routes, server actions, Supabase Edge Functions, Firebase Functions, Express/Hono/Fastify routes, FastAPI/Flask/Django views) that call an AI model, send SMS or email, or check passwords without a recognizable rate limiter or per-user quota. It also flags AI calls without an output cap or with a model taken from the request, and Supabase phone sign-in without CAPTCHA. Endpoints where a limiter or quota name appears are listed as `guarded` for the agent to confirm.
+- New check guide `abuse.md`: rate limits for AI, SMS/OTP, email, password checks, and sign-ups; what working protection looks like (server-side, keyed by user, shared store); AI guardrails that keep an assistant on its job; severity guidance; and small finite verification instead of load testing.
+- `ai-features.md` gains a "Staying on topic" section. SKILL.md adds "endpoints anyone can repeat" to the high-yield first pass, and `discover` suggests the abuse guide for AI, SMS, and email dependencies.
+- New manual evaluation: an AI recipe app with six unlabelled abuse defects and decoys.
 - Supabase guide: flag `user_metadata` in policies, and replace the outdated default-grant statement with Supabase's 2026 Data API grant change.
 - Firebase guide: flag test-mode expiry rules, Realtime Database cascading grants, and roles read from user-writable documents.
 - `rls-audit`: new leads for signed-in-only policies (`auth.uid() is not null`, `auth.role() = 'authenticated'`), policies reading `user_metadata`, and insert/update policies on tables with entitlement columns (`is_pro`, credits, role, plan) that no column grant restricts. `DROP POLICY` and `ALTER POLICY` are now replayed, so removed or tightened policies are no longer reported. Lead text no longer assumes Supabase's old default table grants.

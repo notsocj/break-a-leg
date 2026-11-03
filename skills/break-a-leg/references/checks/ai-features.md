@@ -5,8 +5,12 @@ Use this guide when the app calls an LLM or other AI provider (OpenAI, Anthropic
 ## Keys and cost
 
 - A provider key in the mobile app, a public env variable, or bundled config lets anyone spend the founder's quota. Run `secrets` and trace the call: the provider must be called from a server the founder controls.
-- A server proxy without authentication, or with authentication but no per-user limit, is the same problem one step removed. Check for per-user quotas, maximum input/output tokens, and model choice fixed on the server rather than taken from the request.
+- A server proxy without authentication, or with authentication but no per-user limit, is the same problem one step removed. Check for per-user quotas, maximum input/output tokens, and model choice fixed on the server rather than taken from the request. The `limits` helper lists AI endpoints missing these; [abuse.md](abuse.md) covers rate limits in depth.
 - Free-tier or trial limits counted on the device can be reset by reinstalling. See [paid-features.md](paid-features.md).
+
+## Staying on topic
+
+An assistant that answers anything lets people use the app as a free general chatbot on the founder's bill. A system prompt that limits the topic helps but can be talked around, so check that cost is bounded first (sign-in, per-user quota, output cap, fixed model), then that the prompt states the app's job and declines the rest. Rate this by cost and brand risk, not as a data breach, unless tools are involved. See "AI guardrails" in [abuse.md](abuse.md) for the full checklist and severity.
 
 ## Prompt injection and tools
 
@@ -22,4 +26,4 @@ Check what user data is sent to the provider, whether that matches the privacy p
 
 ## Verification
 
-Do not run cost or rate-limit stress tests against a live provider. A small, finite isolated test may confirm that an unauthenticated request is rejected or that a quota stops a second request. Label proposed injection tests as unexecuted unless run in an isolated environment with synthetic data.
+Do not run cost or rate-limit stress tests against a live provider. A small, finite isolated test may confirm that an unauthenticated request is rejected, that a quota stops the request after the limit, or that a handful of off-topic prompts are declined (see [abuse.md](abuse.md#verifying)). Label proposed injection tests as unexecuted unless run in an isolated environment with synthetic data.

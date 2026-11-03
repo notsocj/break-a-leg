@@ -27,14 +27,15 @@ An agent performs the review; `discover` only identifies candidate stacks. The h
 - Stack-specific review guides for Flutter, React Native/Expo, Swift/iOS, and Kotlin/Android, plus generic guidance for other mobile stacks.
 - Backend guides for Supabase, Firebase, and custom APIs.
 - Checks covering ownership/roles, credential exposure, server validation, storage, paid features, and expensive endpoints.
+- Abuse protection: rate limits on AI, SMS/OTP, email, and password endpoints, and AI guardrails that stop the app from becoming a free chatbot on your bill.
 - Local-first checks for app-lock transitions, sensitive dialogs, encrypted backups, and deletion across device stores.
-- A "high-yield first pass" that sends the agent to where founder apps usually break: database rules, client keys, entitlements, unauthenticated server functions, and sign-in edges.
+- A "high-yield first pass" that sends the agent to where founder apps usually break: database rules, client keys, entitlements, unauthenticated server functions, sign-in edges, and endpoints anyone can repeat.
 - Guides for sign-in/OAuth/deep links/account deletion and for AI features (provider keys, cost limits, prompt injection into tools).
-- A zero-dependency TypeScript helper with offline stack discovery, a Supabase `rls-audit`, a `secrets` scan that never prints values, plan validation, and bounded cross-user/anonymous JSON read probes (bearer or cookie sessions).
+- A zero-dependency TypeScript helper with offline stack discovery, a Supabase `rls-audit`, a `secrets` scan that never prints values, a `limits` scan for endpoints without rate limits, plan validation, and bounded cross-user/anonymous JSON read probes (bearer or cookie sessions).
 - Reports that open with a plain-language launch priority: fix before launch, fix soon, good to know, not checked.
 - Markdown and JSON reports distinguishing reproduced issues, source evidence, blocked checks, and untested areas.
 
-**Coverage is explicit.** The skill guides the agent's reasoning; it is not an exhaustive automated scanner. The runtime helper currently verifies only configured owner-only JSON reads with bearer or cookie sessions and a trusted identity endpoint. `rls-audit` and `secrets` are static lead finders, not proof of exposure. Firebase runtime verification uses the project's own emulator harness; there is no bundled Firebase SDK adapter. Device automation and binary analysis are not included. See the [coverage contract](skills/break-a-leg/references/coverage.md).
+**Coverage is explicit.** The skill guides the agent's reasoning; it is not an exhaustive automated scanner. The runtime helper currently verifies only configured owner-only JSON reads with bearer or cookie sessions and a trusted identity endpoint. `rls-audit`, `secrets`, and `limits` are static lead finders, not proof of exposure. Firebase runtime verification uses the project's own emulator harness; there is no bundled Firebase SDK adapter. Device automation and binary analysis are not included. See the [coverage contract](skills/break-a-leg/references/coverage.md).
 
 ## Install
 
@@ -98,10 +99,11 @@ See the [vulnerable demo report](examples/demo-reports/vulnerable.md), [secure c
 node skills/break-a-leg/scripts/break-a-leg.mjs discover /path/to/app
 node skills/break-a-leg/scripts/break-a-leg.mjs secrets /path/to/app
 node skills/break-a-leg/scripts/break-a-leg.mjs rls-audit /path/to/app
+node skills/break-a-leg/scripts/break-a-leg.mjs limits /path/to/app
 node skills/break-a-leg/scripts/break-a-leg.mjs validate examples/local-api.plan.json
 ```
 
-`discover`, `secrets`, `rls-audit`, and `validate` are offline. `secrets` reports credential type and location only, never the value; `rls-audit` replays Supabase migrations and `config.toml` and lists access-control leads. Both exit 1 when they have something to review. The examples intentionally contain environment references rather than tokens. Adapt their origin, endpoint, fixture, and response pointer to your isolated service before using `run`. Full details: [runner guide](skills/break-a-leg/references/runner.md).
+`discover`, `secrets`, `rls-audit`, `limits`, and `validate` are offline. `secrets` reports credential type and location only, never the value; `rls-audit` replays Supabase migrations and `config.toml` and lists access-control leads; `limits` lists server endpoints that call AI, send SMS or email, or check passwords without a recognizable rate limit or per-user quota. All three exit 1 when they have something to review. The examples intentionally contain environment references rather than tokens. Adapt their origin, endpoint, fixture, and response pointer to your isolated service before using `run`. Full details: [runner guide](skills/break-a-leg/references/runner.md).
 
 The runner records authorization assertions but cannot prove ownership or environment isolation. GET endpoints must be semantically read-only. It blocks redirects, does not retry, limits requests and response sizes, and stops target traffic on transport failure, 429, or 5xx. These bounds apply to its own requests, not arbitrary tools used by an agent. It is not a sandbox.
 
@@ -124,11 +126,11 @@ After editing runner source or schemas, run `npm run bundle`. Generated copies i
 
 `npm run check:docs` verifies local Markdown file links. `npm run test:python` covers installation and archive packaging; `npm run test:installer` runs only the installer cases. The maintainer packager selects Git-tracked files rather than arbitrary local files.
 
-Five manual evaluations check the agent's reasoning on fictional fixtures: [local-first](evals/local-first/request.md), [Supabase backend](evals/supabase-rls/request.md), [false positives](evals/false-positives/request.md), and two harder cases with unlabelled defects and decoys, [multi-tenant Supabase](evals/supabase-orgs/request.md) and [Firebase marketplace](evals/firebase-marketplace/request.md). They are not executable scanner tests; provide each rubric only after the agent produces an assessment.
+Six manual evaluations check the agent's reasoning on fictional fixtures: [local-first](evals/local-first/request.md), [Supabase backend](evals/supabase-rls/request.md), [false positives](evals/false-positives/request.md), [AI abuse](evals/ai-abuse/request.md), and two harder cases with unlabelled defects and decoys, [multi-tenant Supabase](evals/supabase-orgs/request.md) and [Firebase marketplace](evals/firebase-marketplace/request.md). They are not executable scanner tests; provide each rubric only after the agent produces an assessment.
 
 ## What BreakALeg does not promise
 
-No security certification, App Store approval, exhaustive vulnerability detection, automatic remediation, production active testing, password guessing, load testing, or turnkey simulator/binary testing. No runtime finding is claimed when tools, credentials, fixtures, or backend access are missing.
+No security certification, App Store approval, exhaustive vulnerability detection, automatic remediation, production active testing, password guessing, load testing or rate-limit stress testing, or turnkey simulator/binary testing. No runtime finding is claimed when tools, credentials, fixtures, or backend access are missing.
 
 The included tests exercise a synthetic HTTP service and discovery manifests. They do not establish live Firebase/Supabase integration coverage or native app runtime coverage. The framework guides remain useful without those services, and every assessment must disclose its actual evidence.
 

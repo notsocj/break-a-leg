@@ -1,6 +1,6 @@
 # Architecture and extension points
 
-BreakALeg has two cooperating parts: an agent skill that guides investigation and a deterministic helper with offline lead finders (`discover`, `rls-audit`, `secrets`) and a narrow HTTP probe. Neither part is a sandbox for arbitrary agent tools.
+BreakALeg has two cooperating parts: an agent skill that guides investigation and a deterministic helper with offline lead finders (`discover`, `rls-audit`, `secrets`, `limits`) and a narrow HTTP probe. Neither part is a sandbox for arbitrary agent tools.
 
 ## Source of truth
 
@@ -11,6 +11,7 @@ BreakALeg has two cooperating parts: an agent skill that guides investigation an
 | `runner/discover.ts` | Bounded offline stack hints and suggested check guides; not vulnerability detection |
 | `runner/rls-audit.ts` | Offline Supabase migration/config replay that lists access-control leads |
 | `runner/secrets.ts` | Offline credential pattern scan that reports type and location, never values |
+| `runner/limits.ts` | Offline scan for server endpoints that call AI, send SMS/email, or check passwords without a recognizable rate limit or quota |
 | `runner/plan.ts` | Runtime plan validation and JSON pointer resolution |
 | `runner/transport.ts` | Origin/path restrictions, sequential budgets, TLS, deadlines, size caps, and stopping |
 | `runner/run.ts` | Credential preflight, identity checks, owner baseline, unauthorized comparisons, and completeness |
@@ -23,7 +24,7 @@ BreakALeg has two cooperating parts: an agent skill that guides investigation an
 | `scripts/package.py` | Packages Git-tracked source and standalone skill files; excludes local artifacts |
 | `scripts/check_docs.py` | Checks repository-local Markdown file links; does not fetch websites |
 | `tests/` | Behavioral runner, discovery, packaging, and installer verification with synthetic data |
-| `evals/` | Manual reasoning cases (local-first, Supabase backend, false positives, multi-tenant Supabase, Firebase marketplace) with separate grading rubrics |
+| `evals/` | Manual reasoning cases (local-first, Supabase backend, false positives, multi-tenant Supabase, Firebase marketplace, AI abuse) with separate grading rubrics |
 
 Edit `runner/` and `schemas/`, then run `npm run bundle`. The copies beneath the skill are generated. Bundling makes a copied skill usable without npm dependencies, a compiler, or access to its original checkout.
 

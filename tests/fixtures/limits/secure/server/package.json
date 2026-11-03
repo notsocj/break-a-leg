@@ -1,0 +1,1 @@
+{ "name": "fixture-server", "private": true, "dependencies": { "express": "5.0.0", "express-rate-limit": "7.0.0", "twilio": "5.0.0" } }

@@ -1,0 +1,1 @@
+{ "name": "fixture-web", "private": true, "dependencies": { "next": "15.0.0", "openai": "5.0.0", "resend": "4.0.0" } }

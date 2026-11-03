@@ -1,0 +1,19 @@
+[auth]
+enable_signup = true
+
+[auth.rate_limit]
+sms_sent = 30
+
+[auth.captcha]
+enabled = true
+provider = "turnstile"
+
+[auth.sms]
+enable_signup = true
+
+[auth.sms.twilio]
+enabled = true
+account_sid = "env(TWILIO_SID)"
+
+[functions.polar-webhook]
+verify_jwt = false

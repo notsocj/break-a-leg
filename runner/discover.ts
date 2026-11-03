@@ -25,8 +25,13 @@ const npmChecks: Record<string, string> = {
   'openai': 'ai-features', '@anthropic-ai/sdk': 'ai-features', '@google/generative-ai': 'ai-features', '@google/genai': 'ai-features', 'ai': 'ai-features', 'langchain': 'ai-features', '@langchain/core': 'ai-features',
   'expo-local-authentication': 'local-data', 'react-native-biometrics': 'local-data', 'expo-secure-store': 'local-data', 'expo-sqlite': 'local-data', 'react-native-mmkv': 'local-data', 'react-native-keychain': 'local-data',
   'expo-auth-session': 'auth-flows', 'react-native-app-auth': 'auth-flows', '@react-native-google-signin/google-signin': 'auth-flows', 'expo-apple-authentication': 'auth-flows', 'expo-linking': 'auth-flows', 'next-auth': 'auth-flows', '@auth/core': 'auth-flows', '@clerk/clerk-expo': 'auth-flows',
-  'expo-notifications': 'auth-flows'
+  'expo-notifications': 'auth-flows',
+  // Paid messaging: each send costs money and can be triggered by bots.
+  'twilio': 'abuse', '@vonage/server-sdk': 'abuse', 'plivo': 'abuse', 'telnyx': 'abuse',
+  'resend': 'abuse', '@sendgrid/mail': 'abuse', 'nodemailer': 'abuse', 'postmark': 'abuse', 'mailgun.js': 'abuse'
 };
+// AI features also need the abuse guide: rate limits, quotas, and staying on topic.
+const alsoSuggest: Record<string, string> = { 'ai-features': 'abuse' };
 
 // Flutter pubspec dependency names → stack or check (same idea as the npm tables).
 const dartStacks: Record<string, string> = { 'supabase_flutter': 'supabase', 'supabase': 'supabase', 'firebase_core': 'firebase', 'cloud_firestore': 'firebase', 'firebase_auth': 'firebase' };
@@ -91,13 +96,14 @@ export async function discover(root: string, maxEntries = 20000) {
           if (/\bflutter\s*:/.test(content)) add('flutter', path);
           // Dependency keys are indented `name:` lines; match each table entry exactly.
           for (const [dep, stack] of Object.entries(dartStacks)) if (new RegExp(`^\\s+${dep}\\s*:`, 'm').test(content)) add(stack, path);
-          for (const [dep, check] of Object.entries(dartChecks)) if (new RegExp(`^\\s+${dep}\\s*:`, 'm').test(content)) suggest(check, path, dep);
+          for (const [dep, check] of Object.entries(dartChecks)) if (new RegExp(`^\\s+${dep}\\s*:`, 'm').test(content)) { suggest(check, path, dep); if (alsoSuggest[check]) suggest(alsoSuggest[check], path, dep); }
         } else if (name === 'package.json') {
           const parsed = JSON.parse(content);
           const deps = { ...parsed.dependencies, ...parsed.devDependencies };
           for (const dep of Object.keys(deps)) {
             if (npmStacks[dep]) add(npmStacks[dep], path);
             if (npmChecks[dep]) suggest(npmChecks[dep], path, dep);
+            if (alsoSuggest[npmChecks[dep]]) suggest(alsoSuggest[npmChecks[dep]], path, dep);
           }
         } else if (name === 'Package.swift') {
           // A Swift package is either an iOS app/library or a server (Vapor/Hummingbird).
@@ -109,7 +115,8 @@ export async function discover(root: string, maxEntries = 20000) {
           if (/\bsupabase\b/i.test(content)) add('supabase', path);
           if (/\bfirebase[-_]admin\b/i.test(content)) add('firebase', path);
           if (/\b(stripe)\b/i.test(content)) suggest('paid-features', path, 'stripe');
-          if (/\b(openai|anthropic)\b/i.test(content)) suggest('ai-features', path, 'llm sdk');
+          if (/\b(openai|anthropic)\b/i.test(content)) { suggest('ai-features', path, 'llm sdk'); suggest('abuse', path, 'llm sdk'); }
+          if (/\b(twilio|sendgrid|resend)\b/i.test(content)) suggest('abuse', path, 'messaging sdk');
         }
       } catch { unreadable++; }
     }

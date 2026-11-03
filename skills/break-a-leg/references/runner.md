@@ -8,11 +8,12 @@ Commands (replace `<skill-dir>` with the actual installed directory):
 node <skill-dir>/scripts/break-a-leg.mjs discover /path/to/project
 node <skill-dir>/scripts/break-a-leg.mjs rls-audit /path/to/project
 node <skill-dir>/scripts/break-a-leg.mjs secrets /path/to/project
+node <skill-dir>/scripts/break-a-leg.mjs limits /path/to/project
 node <skill-dir>/scripts/break-a-leg.mjs validate /path/to/plan.json
 node <skill-dir>/scripts/break-a-leg.mjs run /path/to/plan.json --out /path/to/new-run-directory --repo /path/to/project
 ```
 
-`discover`, `rls-audit`, `secrets`, and `validate` are offline. `rls-audit` and `secrets` print JSON leads and exit 1 when they report any; neither prints credential values.
+`discover`, `rls-audit`, `secrets`, `limits`, and `validate` are offline. `rls-audit`, `secrets`, and `limits` print JSON leads and exit 1 when they report any; none prints credential values. `limits` also lists `guarded` endpoints where a limiter or quota name appears, so the agent can confirm it actually runs.
 
 The output directory must not already exist; its parent must exist. The runner refuses existing directories before making requests. Output files use restrictive permissions where supported. `--repo` records HEAD if available; include a dirty-worktree note in the reviewed report when appropriate. A commit hash alone does not identify uncommitted changes.
 
