@@ -37,17 +37,37 @@ python3 scripts/install.py --agent claude   # Claude Code
 python3 scripts/install.py                  # Codex
 ```
 
-**2. Ask.** Open your app's repo in Claude Code or Codex, start a new session, and ask:
+**2. Run it.** Open your app's repo in Claude Code or Codex, start a new session, and type:
 
 ```text
-Is my app safe to launch?
+/break-a-leg
 ```
 
-You can also run `/break-a-leg` in Claude Code or mention `$break-a-leg` in Codex.
+That is the only command. In Codex, use `$break-a-leg`. You can also skip the command and just ask "Is my app safe to launch?"
 
 **3. Read the report.** It opens with what to fix before launch.
 
 You don't need staging, test accounts, a simulator, or an extra API key. Source code is enough for a first review. The full walkthrough is in [Getting started](docs/getting-started.md).
+
+## Things you can ask
+
+`/break-a-leg` on its own runs a full review. Add a few words after it to focus on one worry:
+
+| Type this | It focuses on |
+| --- | --- |
+| `/break-a-leg` | A full pre-launch review, ranked by what to fix first |
+| `/break-a-leg can users see each other's data?` | Database rules, ownership checks, and private storage |
+| `/break-a-leg check my Supabase RLS` | Tables without RLS, permissive policies, writable `is_pro` or credits columns |
+| `/break-a-leg check my Firebase rules` | Firestore, Realtime Database, and Storage rules, plus Cloud Functions |
+| `/break-a-leg did I leak an API key?` | Secret keys in app code, public env variables, and config files |
+| `/break-a-leg can someone get premium for free?` | Paywalls, credits, promo codes, and payment webhooks |
+| `/break-a-leg can someone run up my AI or SMS bill?` | Rate limits, per-user quotas, OTP abuse, and email sending |
+| `/break-a-leg does my chatbot answer off-topic questions?` | AI guardrails: quotas, output caps, fixed model, scope, and tool access |
+| `/break-a-leg check sign-in and deep links` | OAuth redirects, deep links, anonymous sign-ins, and account deletion |
+| `/break-a-leg review ./mobile and ./server` | Points it at the app and backend when they live in different folders |
+| `/break-a-leg retest the fixes` | Reruns the failed checks after you fix them, with the legitimate case too |
+
+Every answer follows the same rules: it reports only what it can back up, says how sure it is, and lists what it could not check.
 
 ## How it works
 
